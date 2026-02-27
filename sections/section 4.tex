@@ -1,0 +1,325 @@
+\section{Linear Predictive Coding (LPC)}
+
+\subsection{Introduction}
+
+The idea behind this kind of \textbf{encoding} is that the current sample $s(n)$ of a discrete-time signal $ s $ is the result of a \textbf{linear combination} of $p$ \textbf{previous samples} of the same signal.
+This representation is quite good for voice signals and has different qualities: low bit-rate, mathematically precise and easy to implement.
+The prediction filter provides a spectral envelope in form of an all-pole filter $H(z)$.
+Its spectral envelopes are well suited for audio works (i.e. vocal formants estimation).
+
+\subsection{Data model}
+
+Let us define the \textbf{approximation} $ \hat{s}(n) $ of the original sample $s(n)$:
+
+\[ s(n) \approx \hat{s}(n) = a_1 \ s(n-1) + a_2 \ s(n-2) + \cdots + a_p \ s(n-p) = \sum_{k=1}^p a_k \ s(n-k) \]
+
+Considering short analysis windows, we assume the coefficients $a_k$ as constants (\textbf{quasi-stationary assumption}).
+In some applications (i.e. vocal signals), the signal $s(n)$ can be modelled by the following \textbf{auto-regressive (AR) stochastic process}:
+
+\[ s(n) =  \sum_{k=1}^p a_k \ s(n-k) + G \ u(n) \]
+
+Where $u(n)$ is a \textbf{white noise excitation}.
+In vocal sound reproduction, we may think of the excitation $u(n)$ as the glottis, resulting in the output speech signal $s(n)$.
+
+\subsection{Filter interpretation}
+
+By applying the $\mathcal{Z}$-transform, we can describe a transfer function between input excitation $U$ and output $S$:
+
+\[ S(z) =  \sum_{k=1}^p a_k \ S(z) z^{-k} + G \ U(z) = S(z) \sum_{k=1}^p a_k \ z^{-k} + G \ U(z) \]
+
+\[ \Rightarrow \quad H(z) = \frac{S(z)}{G \ U(z)} = \frac{1}{1 - \sum_{k=1}^p a_k \ z^{-k}} = \frac{1}{1 - P(z)} = \frac{1}{A(z)} \]
+
+The transfer function $H(z)$ is called \textbf{shaping (or forward) filter}, as it shapes the spectrum of a white noise $u(n)$ into one of a more-detailed signal $s(n)$:
+
+\begin{figure}[H]
+    \centering    \includegraphics[width=0.5\linewidth]{Shaping filtering.png}
+    \caption{Shaping filtering}
+\end{figure}
+
+The filter $A(z)$ is called \textbf{whitening (or inverse) filter}, as it gets a generic signal $s(n)$ and makes it into a white noise $u(n)$ (inverse function of $H(z)$).
+The filter $P(z)$ is called \textbf{prediction filter}, as it creates an approximation $\hat{s}(n)$ (or prediction) of a signal $s(n)$ using its past samples.
+
+\[ A(z) = \frac{G \ U(z)}{S(z)}, \qquad P(z) = \sum_{k=1}^p a_k \ z^{-k} = \frac{\hat{S}(z)}{S(z)} \]
+
+Now, the quality of the approximation $\hat{s}(n)$ is the distance from the original sample $s(n)$, which means we can define the \textbf{prediction error} $e(n)$ that we want to minimize as much as possible:
+
+\[ e(n) = s(n) - \hat{s}(n) = \cancel{\sum_{k=1}^p a_k \ s(n-k)} + G \ u(n) - \cancel{\sum_{k=1}^p a_k \ s(n-k)} = G \ u(n) \]
+
+\[ \Rightarrow \quad E(z) = S(z) - \hat{S}(z) = S(z) - P(z) S(z) = \left( 1-P(z) \right) S(z) = A(z) S(z) \]
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Whitening shaping.png}
+    \caption{Whitening and prediction filtering}
+\end{figure}
+
+\subsection{Wiener filtering problem}
+
+In the end, the goal is to find the coefficients $a_k$ which best make $\hat{s}(n)$ approximate the signal $s(n)$ or, in other words, minimize the mean-squared prediction error (\textbf{MSE minimization}, the energy of the prediction error $ e $ should be as small as possible):
+
+\[ \min_{a_k} E\left\{ \abs{e(n)}^2 \right\} = \min_{a_k} E\left\{ \abs{s(n) - \hat{s}(n)}^2 \right\} = \min_{a_k} J \]
+
+This problem looks like a \textbf{Wiener filtering problem}, where $s$ is both the filter input signal and the desired response:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{LPC and Wiener.png}
+    \caption{LPC as a Wiener filtering problem}
+\end{figure}
+
+We just need to identify the Wiener coefficients $  \left\{ a_k \right\} \big|_{k=1}^{p} $.
+By defining the auto-correlation of $s(n)$ as:
+
+\[ r(i) = E \left\{ s(n) s(n-i) \right\} \]
+
+We define the \textbf{Wiener-Hopf equations} for the LPC problem:
+
+\[ r(i) = \sum_{k=1}^p a_k \ r(i-k), \qquad i = 1, 2, \cdots, p \]
+
+The last result implies that the cross-correlation between input and impulse response coincides with the auto-correlation of the input, thanks to the fact that $s$ is both the filter input signal and the desired response.
+
+\clearpage
+
+The following matrix representation allows to define the system for finding the coefficients $a_k$:
+
+\[ r(i) = \sum_{k=1}^p a_k \ r(i-k) \quad \Rightarrow \quad \underline{\mathrm{r}} = \left[\mathrm{R}\right] \underline{\mathrm{a}} \quad \Rightarrow \quad \underline{\mathrm{a}} = \left[\mathrm{R}\right]^{-1} \underline{\mathrm{r}} \]
+
+\[ \underline{\mathrm{r}} = \left[
+\begin{array}{c}
+    r(1) \\
+    r(2) \\
+    \vdots \\
+    r(p)
+\end{array} \right]_{p \times 1}, \quad \left[\mathrm{R}\right] = \left[
+\begin{array}{cccc}
+    r(0) & r(1) & \cdots & r(p-1) \\
+    r(1) & r(0) & \cdots & r(p-2) \\
+    \vdots & \vdots & \ddots & \vdots \\
+    r(p-1) & r(p-2) & \cdots & r(0) \\
+\end{array} \right]_{p \times p}, \quad \underline{\mathrm{a}} = \left[
+\begin{array}{c}
+    a_1 \\
+    a_2 \\
+    \vdots \\
+    a_p
+\end{array} \right]_{p \times 1} \]
+
+Reminding the definition of variance of the input as $ \sigma_s^2 = r(0) $, the minimum MSE (i.e. the minimum value of the \textbf{cost function} $J$) is:
+
+\[ D_p = J_{\min} = \sigma_s^2 - \underline{\mathrm{r}}^T \underbrace{\left[\mathrm{R}\right]^{-1} \underline{\mathrm{r}}}_{\underline{\mathrm{a}}} = r(0) - \underline{\mathrm{r}}^T \underline{\mathrm{a}} = r(0) - \sum_{k=1}^p a_k \ r(k) \]
+
+A quality definition for the prediction is the \textbf{prediction gain} $G_p$:
+
+\[ G_p = \frac{\sigma_s^2}{D_p} \qquad \left\{
+\begin{array}{ccl}
+    G_p \rightarrow \infty & \Rightarrow & s(n) \text{ is highly predictable} \\
+    G_p \rightarrow 1 & \Rightarrow & s(n) \text{ is unpredictable (i.e. white noise)}
+\end{array}
+\right. \]
+
+\subsection{Statistical interpretation}
+
+Let us extend the LPC logic to all past samples ($p \rightarrow \infty $):
+
+\[ \hat{s}(n) = \sum_{k=1}^{\infty} a_k \ s(n-k) \]
+
+The orthogonality principle is valid (\textbf{optimum error} $e_o(n)$):
+
+\[ E \left\{ e_o(n) s(n-i) \right\} = 0, \qquad i = 1, 2, \dots, \infty \]
+
+The auto-correlation of the optimum error is:
+
+\[ r_{e_o} (i) = E \left\{ e_o(n) \ e_o(n-i) \right\} = E \left\{ e_o(n) \left[ s(n-i) - \hat{s}_0(n-i) \right] \right\} = E \left\{ e_o(n) \ s(n-i) \right\} - E \left\{ e_o(n) \ \hat{s}_0(n-i) \right\} = \]
+
+\[ = E \left\{ e_o(n) \ s(n-i) \right\} - \sum_{k=1}^{\infty} a_k \ E \left\{ e_o(n) \ \hat{s}_0(n-k-i) \right\} = 0, \qquad \forall i>0 \]
+
+The auto-correlation must be even, so the previous result holds for $i<0$ too.
+So, the only non-zero value is $ r_{e_o}(0)= D_p $.
+The \textbf{auto-correlation} of the optimum error $ r_{e_o} $ is a \textbf{delta-like function}:
+
+\[ r_{e_o}(i) = D_p \ \delta(i) \]
+
+Which means the optimum prediction error $ e_o $ is a \textbf{white noise process}.
+
+Since $ e_o $ is purely random (being white noise), the \textbf{infinite-memory LP} extracts all the (predictable) information of $s$ into the inverse filter $A(z)$.
+The residual of the prediction process $e_o$ is thus left with no sample-spanning information about the signal (only unpredictable information).
+Infinite memory LP can be characterized as a \textbf{whitening process} of the input signal $s$.
+
+\subsection{Prediction goal}
+
+We can recover the signal $ s $ from $ e_o $ and $ A(z) $ by feeding the optimum error into the shaping filter $ H(z) $.
+All correlation information of $ s $ is contained into $ A(z) $, so we can use any white noise (with same variance of $e_o$) in the reconstruction process.
+
+Let us feed the white noise $ e' \sim \mathcal{N}(0, \sigma^2 = D_p) $ into the filter $ H(z) $ to obtain the signal $ s' $.
+Any white noise we feed has the same constant power spectrum density (PSD):
+
+\[ r_{e'}(n) = D_p \ \delta(n) \quad \Rightarrow \quad \text{PSD} \left\{e'(n)\right\} = \abs{E' (e^{j\omega})} = \mathcal{F} \left\{ r_{e'} \right\} = D_p  \quad \Rightarrow \quad \abs{E' \left( e^{j\omega} \right)}^2 = \abs{E_0 \left( e^{j\omega} \right)^2} = D_p \]
+
+The output signal $ s' $ has the same power spectrum of $ s $ (even if $ s'(n) \neq s(n) $), being both the output of the same filter and both input have the \textbf{same power spectrum}:
+
+\[ \left. \begin{array}{c}
+    \abs{S \left( e^{j\omega} \right)}^2 = \abs{H \left( e^{j\omega} \right)}^2 \abs{E_0 \left( e^{j\omega} \right)}^2 \\[3pt]
+    \abs{S' \left( e^{j\omega} \right)}^2 = \abs{H \left( e^{j\omega} \right)}^2 \abs{E' \left( e^{j\omega} \right)}^2
+\end{array} \right\} \quad \Rightarrow \quad \abs{S \left( e^{j\omega} \right)}^2 = \abs{S' \left( e^{j\omega} \right)}^2 \]
+
+In reality, a true whitening filter $ A(z) $ is possible only in the case of infinite memory ($ p \rightarrow \infty $), but we use the convention of calling it whitening filter also when the prediction order $p$ is finite.
+In this case, the prediction error will have \textbf{flat spectrum}, but not white.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Whitening and shaping.png}
+    \caption{Whitening and shaping filtering}
+\end{figure}
+
+\subsection{Implementation with non-stationary signals}
+
+Up to now, we assumed all signals to be \textbf{stationary} (as required by the Wiener filtering theory).
+Whenever this assumption is not satisfied, it may look like we have a limitation, although the analysis window should be small enough to assume the signals as stationary (at least locally).
+
+Considering windows of length $ M $ samples, we define the following notation for the samples of voice signal $ s $ and prediction error $ e $:
+
+\[ s_n(m) = s(n+m), \quad m = 0, 1, \dots, M-1 \quad \quad e_n(m) = e(n+m), \quad m = 0, 1, \dots, M-1+p \]
+
+We detach the notation from the specific samples, but we relate it to its position inside the window.
+So, we look for the LPC parameters for the $n$-th segment:
+
+\[ \varepsilon_n = \sum_{m=0}^{M+p-1} e_n^2(m) = \sum_{m=0}^{M+p-1} \left[ s_n(m) - \sum_{k=1}^p a_k \ s_n(m-k) \right]^2 \quad \Rightarrow \quad \min_{a_n} \varepsilon_n \]
+
+In order to solve the Wiener-Hopf equations in the short-term period, we need to estimate the samples of the auto-correlation $ r_n $:
+
+\[ r_n(\abs{i-k}) = \sum_{m=0}^{M-1-(i-k)} s_n(m) s_n(m+i-k), \qquad
+\begin{array}{c}
+    1 \leq i \leq p \\
+    0 \leq k \leq p \\
+    i \geq k
+\end{array} \]
+
+\clearpage
+
+So, the Wiener-Hopf equations become:
+
+\[ r_n(i) = \sum_{k=1}^p a_k \ r_n(\abs{i-k}), \quad i = 1, 2, \dots, p \quad \Rightarrow \quad \underline{\mathrm{a}}_n = \left[\mathrm{R}_n\right]^{-1} \underline{\mathrm{r}}_n \]
+
+\[ \underline{\mathrm{r}}_n = \left[
+\begin{array}{c}
+    r_n(1) \\
+    r_n(2) \\
+    \vdots \\
+    r_n(p)
+\end{array} \right]_{p \times 1}, \qquad \left[\mathrm{R}_n\right] = \left[
+\begin{array}{cccc}
+    r_n(0) & r_n(1) & \cdots & r_n(p-1) \\
+    r_n(1) & r_n(0) & \cdots & r_n(p-2) \\
+    \cdots & \cdots & \ddots & \vdots \\
+    r_n(p-1) & r_n(p-2) & \cdots & r_n(0) \\
+\end{array} \right]_{p \times p}, \qquad \underline{\mathrm{a}}_n = \left[
+\begin{array}{c}
+    a_1(n) \\
+    a_2(n) \\
+    \vdots \\
+    a_p(n)
+\end{array} \right]_{p \times 1} \]
+
+The estimation of $r_n(\abs{i-k})$ allows to obtain a \textbf{minimum-phase whitening filter} $A_n(z)$ (all zeros are inside the unitary circle $\abs{z}<1$), which guarantees a \textbf{stable shaping filter} $H_n(z) = A_n^{-1}(z)$.
+
+To efficiently compute the LPC coefficients, we can use the \textbf{Levinson-Durbin recursion}, a fast algorithm that exploits the Toeplitz
+structure of the auto-correlation matrix $\left[\mathrm{R}_n\right]$.
+Applying a tapered window to the extracted frames (possibly with overlap) to attenuate edge effects.
+
+\subsection{Power spectrum envelope estimator}
+
+In the case of infinite-memory LPC, the signal spectrum $ \abs{S(e^{j\omega})}^2 $ reconstruction from shaping filter and error variance is exact.
+So, we can think that a finite order LPC (order $p$) reconstruction may converge to the ideal one:
+
+\[ \lim_{p \rightarrow \infty} \abs{\hat{S_n}(e^{j\omega})}^2 = \abs{S_n(e^{j\omega})}^2 \]
+
+For $p$ increasing, the MSE of the prediction $ \varepsilon_n $ monotonically decreases.
+This implies that the predicted spectrum $ \abs{\hat{S_n}(e^{j\omega})}^2 $ will try to match the original spectrum $ \abs{S_n(e^{j\omega})}^2 $.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.9\linewidth]{Power spectrum envelope matching.png}
+    \caption{Power spectrum envelope estimation for different LPC orders $p$}
+\end{figure}
+
+We remind that we are considering short-time windows of the signal $ s $, so the prediction error $ \varepsilon_n $ is time-limited in $ \left[ 0, \ M-1+p \right]$:
+
+\[ \varepsilon_n = \sum_{m=0}^{M-1+p} e_n^2(m) = \sum_{m=-\infty}^{+\infty} e_n^2(m) \]
+
+Using the Parseval theorem:
+
+\[ \varepsilon_n = \frac{1}{2\pi} \int_{-\pi}^{+\pi} \abs{E_n(e^{j\omega})}^2 \ d\omega = \frac{1}{2\pi} \int_{-\pi}^{+\pi} \abs{S_n(e^{j\omega})}^2 \abs{A_n(e^{j\omega})}^2 \ d\omega = \frac{1}{2\pi} \int_{-\pi}^{+\pi} \frac{\abs{S_n(e^{j\omega})}^2}{\abs{H_n(e^{j\omega})}^2} \ d\omega \]
+
+\[ \Rightarrow \quad \min_{\underline{\mathrm{a}}_k} \varepsilon_n \quad \Leftrightarrow \quad \min_{\underline{\mathrm{a}}_k} \frac{\abs{S_n(e^{j\omega})}^2}{\abs{H_n(e^{j\omega})}^2}, \qquad \forall -\pi \leq \omega \leq +\pi \]
+
+The LPC technique tries to minimize $ \dfrac{\abs{S_n(e^{j\omega})}^2}{\abs{H_n(e^{j\omega})}^2} $, so we may consider two particular regions:
+
+\[ \left[ \begin{array}{c}
+    \abs{S_n(e^{j\omega})} > \abs{H_n(e^{j\omega})} \rightarrow \text{signal spectrum (in magnitude) is large} \Rightarrow \text{large contribution to } \varepsilon_n \ (>1) \\
+    \abs{S_n(e^{j\omega})} < \abs{H_n(e^{j\omega})} \rightarrow \text{signal spectrum (in magnitude) is small} \Rightarrow \text{small contribution to } \varepsilon_n \ (<1)
+\end{array} \right] \]
+
+Considering that the first region contributes the most to the prediction error, and that the coefficients are found based on this error, the final prediction fits the first region more than the second one: the LPC result describes better signal peaks ($\abs{S_n(e^{j\omega})}$ high) than signal valleys ($\abs{S_n(e^{j\omega})}$ small).
+
+This observation allows to justify the intuition of \textbf{spectral envelope estimator}, because focuses on the peaks estimation more than the valleys.
+The greater the LPC order $p$, the smaller the error: the approximation for both peaks and valleys will be better.
+In other words, the order $p$ controls the smoothness of the LPC spectrum.
+A \textbf{rule of thumb} that works when we want to define a general envelope for speech (i.e. formants), considering $F_s$ sampling frequency:
+
+\[ \frac{F_s}{1000} \leq p \leq \frac{F_s}{1000} + 4 \]
+
+\subsection{Frequency selective LPC}
+
+In some applications, we prefer to apply the LPC considering a \textbf{specific frequency range} (i.e. 0-4 kHz for voiced sounds and vowel components, 4-8 kHz for unvoiced sounds and consonant components), so that we may select different orders $p_1$ and $p_2$ to predict different regions of the signal spectrum (usually smoother envelope for higher frequencies, which means $p_2$ smaller).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Selective LPC.png}
+    \caption{Frequency selective LPC}
+\end{figure}
+
+In order to predict the signal in the frequency range $ f \in [f_A, f_B] $, we need to map the angular frequency $\omega'$ accordingly before evaluating the \textbf{new auto-correlation} $r_n'$ using the \textbf{IDTFT} (Inverse Discrete-Time Fourier Transform):
+
+\[ \omega \in [2 \pi f_A, \ 2 \pi f_B] \quad \Rightarrow \quad \omega' \in [0, 2\pi], \qquad r_n'(k) = \frac{1}{2\pi} \int_{-\pi}^{+\pi} \abs{S_n(e^{j\omega'})}^2 e^{j\omega' k} \ d\omega' \]
+
+The Wiener-Hopf solution is obtained as before, using the new coefficients $ \left\{ r_n'(k) \right\}$ for $\underline{\mathrm{r}}_n$ and $\left[\mathrm{R}_n\right]$.
+
+\subsection{Applications}
+
+A common application is \textbf{speech coding} and \textbf{synthesis}.
+We model the speech production by defining $e_n(m)$ as the excitation source at the glottis and $H_n(z)$ as the vocal tract transfer function.
+We can encode the LPC coefficients in order to achieve data compression in the speech coding.
+Different prediction errors can be used to differentiate vowel and consonant sounds: a train of pulses is more suited for vowels, while a white noise is more suited for fricative sounds.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{Speech coding.png}
+    \caption{Formants estimation for vowel and consonant sounds, power spectrum and excitation signal}
+\end{figure}
+
+Another application is to implement a \textbf{robust pitch detection}.
+The idea is to look at the prediction error peaks of segments of a voiced sound, then evaluate the average distance between the peaks.
+The estimator can be more robust if we take long segments, which means predicting the current sample using the past samples located at one period earlier.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.5\textwidth}
+    \centering
+        \includegraphics[width=\linewidth]{Pitch prediction LPC.png}
+        \caption{Pitch detection}
+    \end{minipage}
+    \hspace{0.5cm}
+    \begin{minipage}[c]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Cross-synthesis.png}
+        \caption{Cross-synthesis block diagram}
+    \end{minipage}
+\end{figure}
+
+Finally, another application is the \textbf{cross-synthesis} (i.e. talking instruments).
+The idea is to feed a musical instrument signal into the vocal tract transfer function from a LPC speech analysis.
+The musical signal works as the excitation source $e_n(m)$ for the shaping filter $H_n(z)$ : the output signal will have a formant-like structure and the harmonic and textural qualities of the instrument.
+
+For each frame, we perform the LPC analysis on both musical signal $x^M(n)$ and speech signal $x^S(n)$, so that we may feed the musical prediction error $e^M(n)$ into the speech shaping filter $H^S(z)$.
+
+\clearpage

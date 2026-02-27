@@ -1,0 +1,785 @@
+\section{Microphone Arrays: Spatial Methods for DOA Estimation}
+
+\subsection{Introduction}
+In this chapter, we focus on spatial methods for \textbf{Direction of Arrival (DOA) estimation} using \textbf{microphone arrays}.
+The goal is to detect and locate $N$ radiating \textbf{acoustic sources} in space by leveraging an array of $M$ passive microphones.
+Rather than directly identifying the sources, we estimate the acoustic energy distribution across space by means of \textbf{spatial spectral analysis}.
+This approach provides information about the directions from which the sound arrives, allowing us to infer the positions of the sources.
+
+We assume a \textbf{simplified scenario} where the sources are located in the \textbf{far-field}, such that wavefronts can be approximated as planar, so that each source can be characterized solely by its direction of arrival (DOA).
+Additionally, we assume a \textbf{2D geometry} in which all sources and sensors lie on the same plane, neglecting reverberation, dispersion and any propagation inhomogeneities.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{DOA scenario.png}
+    \caption{DOA estimation in a simplified scenario}
+\end{figure}
+
+\subsection{Data model}
+For the moment, let us consider a single source radiating from a certain DOA $\theta$.
+The output of the $k$-th sensor can be modelled as:
+
+\[
+y_k(n) = h_k(n) \ast s(n - \tau_k) + e_k(n), \qquad k = 1, 2, \cdots, M
+\]
+
+The signal $s$ is the \textbf{source signal}, as measured at a reference point, while $h_k$ is the \textbf{impulse response} of the $k$th sensor.
+The time $\tau_k$ is the \textbf{propagation delay} between the reference point and the $k$-th sensor, while the signal $e_k$ is the \textbf{additive noise} at the sensor.
+
+The information about the source position $\theta$ is carried by the \textbf{propagation delays} $\tau_k$.
+The basic problem is to \textbf{estimate} these time delays, assuming the impulse responses of the sensors are known.
+
+The model equation significantly simplifies if we consider an \textbf{emitted narrowband signal}, with known carrier frequency $\omega_c$.
+In this case, the signal $s$ can be modelled as:
+
+\[
+s(n) = \alpha(n) \cos \left[\omega_c n + \phi(n) \right]
+\]
+
+We extract frames $s_t$ of length $L$ samples from the signal using rectangular window $w$ and unitary hop-size:
+
+\[
+s_t(n) = s(n) \ w(n - t), \qquad
+w(n) = 
+\begin{cases}
+1, & 0 \leq n \leq L - 1 \\
+0, & \text{otherwise}
+\end{cases}
+\]
+
+\clearpage
+
+For each frame, we compute the Discrete-Time Fourier Transform (DTFT):
+
+\[
+S_t(\omega) = \sum_{n=-\infty}^{\infty} s_t(n) \ e^{-j \omega n}
+\]
+
+Notice that this corresponds to the STFT of $s(n)$, computed with unitary time resolution.
+
+Considering the DTFT at the source frequency $\omega = \omega_c$:
+
+\[
+S_t(\omega_c)
+= \sum_{n=-\infty}^{\infty} s_t(n) \ e^{-j \omega_c n}
+= \sum_{n=-\infty}^{\infty} s(n) \ w(n - t) \ e^{-j \omega_c n}
+= \sum_{n=t}^{t+L-1} s(n) \ e^{-j \omega_c n}
+= \sum_{n=t}^{t+L-1} \alpha(n) \cos\left[\omega_c n + \phi(n)\right] e^{-j \omega_c n}
+\]
+
+\[
+\begin{array}{cc}
+    n = l + t\\
+    l = n - t 
+\end{array}
+\longrightarrow \quad
+= \sum_{l=0}^{L-1} \alpha(l + t) \cos\left[\omega_c(l + t) + \phi(l + t)\right] e^{-j \omega_c(l + t)}
+= e^{-j \omega_c t} \sum_{l=0}^{L-1} \alpha(l + t) \cos\left[\omega_c(l + t) + \phi(l + t)\right] e^{-j \omega_c l}
+\]
+
+We assume that the amplitude $\alpha(n)$ and the phase $\phi(n)$ are \textbf{slowly-varying} functions over time, which means that over a short observation window of length $L$, they can be considered approximately constant:
+
+\[
+\alpha(t) \approx \alpha(t + l), \qquad \phi(t) \approx \phi(t + l), \qquad \forall \ l = 0, 1, \cdots, L - 1
+\]
+
+The STFT expression can be simplified accordingly:
+
+\[
+S_t(\omega_c)
+= e^{-j \omega_c t} \sum_{l = 0}^{L - 1} \alpha(t) \cos\left[\omega_c(l + t) + \phi(t)\right] e^{-j \omega_c l}
+\]
+
+\[
+= e^{-j \omega_c t} \ \alpha(t) \sum_{l = 0}^{L - 1} \cos\left[\omega_c l + \omega_c t + \phi(t)\right] e^{-j \omega_c l}
+\approx e^{-j \omega_c t} \ \alpha(t) e^{j\left(\omega_c t + \phi(t)\right)}
+= \alpha(t) \ e^{j \phi(t)}
+\]
+
+As the signal is narrowband and centered at the known frequency $\omega_c$, the previous expression can be interpreted as a function of the time variable only.
+To simplify the \textbf{notation}, we redefine the above expression as follows:
+
+\[
+s(t) \triangleq S_t(\omega_c) = \alpha(t) e^{j \phi(t)}
+\]
+
+From now on, we will consider $s(t)$ as the source signal: we are implicitly working in the STFT domain at a single frequency value corresponding to $\omega = \omega_c$.
+
+The computation of the STFT can also be interpreted as a \textbf{demodulation operation}, followed by a \textbf{low-pass filtering} of the signal.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.42\linewidth]{Bandpass.png}
+    \includegraphics[width=0.42\linewidth]{Bandpass demodulation.png}
+    \includegraphics[width=0.28\linewidth]{Baseband.png}
+    \caption{Band-pass signal (left), demodulated signal (right), base-band signal (bottom)}
+\end{figure}
+
+We start from the band-pass (modulated) signal:
+
+\[
+\overline{s}(n) = \alpha(n) \cos\left[ \omega_c n + \phi(n) \right]
+= \frac{1}{2} \alpha(n) \left[ e^{j \left( \omega_c n + \phi(n) \right)} + e^{-j \left( \omega_c n + \phi(n) \right)} \right]
+\]
+
+Then, we demodulate by multiplying with $2e^{-j\omega_c n}$:
+
+\[
+\tilde{s}(n) = \overline{s}(n) \cdot 2e^{-j\omega_c n}
+= \alpha(n) \left[ e^{j\phi(n)} + e^{-j(2\omega_c n + \phi(n))} \right]
+\]
+
+Finally, we apply a low-pass filter to remove the high-frequency component and recover the base-band signal:
+
+\[
+s(n) = \alpha(n) \ e^{j\phi(n)}
+\]
+
+\subsection{Array model}
+Using the same \textbf{notation} as before, the STFT of the microphone signals can be expressed as:
+
+\[
+y_k(t) = H_k(\omega_c) \cdot \underbrace{s(t) \ e^{-j\omega_c \tau_k}}_{\text{STFT of } s(n-\tau_k)} + e_k(t)
+\]
+
+The term $H_k(\omega_c)$ is the frequency response of the $k$-th microphone evaluated at the frequency $\omega = \omega_c$.
+To make the model more compact, we adopt a vector representation and derive the complete \textbf{array model for a single source}.
+The microphone array output becomes:
+
+\[
+\underline{\mathrm{y}}(t) = \underline{\mathrm{a}}(\theta) \ s(t) + \underline{\mathrm{e}}(t), \qquad
+\underline{\mathrm{y}}(t) =
+\begin{bmatrix}
+    y_1(t) \\
+    y_2(t) \\
+    \vdots \\
+    y_M(t)
+\end{bmatrix}
+,\quad
+\underline{\mathrm{a}}(\theta) =
+\begin{bmatrix}
+    H_1(\omega_c) \ e^{-j\omega_c \tau_1} \\
+    H_2(\omega_c) \ e^{-j\omega_c \tau_2} \\
+    \vdots \\
+    H_M(\omega_c) \ e^{-j\omega_c \tau_M}
+\end{bmatrix}
+,\quad
+\underline{\mathrm{e}}(t) =
+\begin{bmatrix}
+    e_1(t) \\
+    e_2(t) \\
+    \vdots \\
+    e_M(t)
+\end{bmatrix}
+\]
+
+We call $\underline{\mathrm{y}}$ the \textbf{array vector}, $\underline{\mathrm{a}}$ the \textbf{propagation vector} and $\underline{\mathrm{e}}$ the \textbf{noise vector}.
+We can extend the vector representation to $N$ distinct sources.
+Let us define the source signals $s_k$, the corresponding DOAs $\theta_k$ and the propagation vectors $\underline{\mathrm{a}}(\theta_k)$ as:
+
+\[
+s_1(t),\ s_2(t),\ \cdots,\ s_N(t)
+\qquad \qquad
+\theta_1,\ \theta_2,\ \cdots,\ \theta_N
+\qquad \qquad
+\underline{\mathrm{a}}(\theta_1),\ \underline{\mathrm{a}}(\theta_2),\ \cdots,\ \underline{\mathrm{a}}(\theta_N)
+\]
+
+Under the assumption of \textbf{ideal linear acoustic propagation}, we can apply the \textbf{superposition principle} to obtain the array model for the case of multiple sources:
+
+\[
+\underline{\mathrm{y}}(t) = \left[\mathrm{A}\right] \underline{\mathrm{s}}(t) + \underline{\mathrm{e}}(t),
+\]
+
+We define the following:
+
+\[
+\left[\mathrm{A}\right] = 
+\begin{bmatrix}
+\underline{\mathrm{a}}(\theta_1) & \underline{\mathrm{a}}(\theta_2) & \cdots & \underline{\mathrm{a}}(\theta_N)
+\end{bmatrix}_{M \times N}: \text{propagation matrix},
+\qquad
+\underline{\mathrm{s}}(t) =
+\begin{bmatrix}
+s_1(t) \\
+s_2(t) \\
+\vdots \\
+s_N(t)
+\end{bmatrix}_{N \times 1}: \text{source vector}
+\]
+
+\clearpage
+
+\subsection{Uniform Line Array (ULA)}
+We now introduce a specific and widely used array geometry: the \textbf{Uniform Linear Array (ULA)}.
+This configuration consists of $M$ identical \textbf{omnidirectional sensors} arranged along a \textbf{straight line}, with \textbf{equal spacing} $d$ between consecutive sensors.
+The uniform spacing and simple geometry make this setup particularly convenient for DOA estimation tasks.
+
+To simplify the analysis, we consider again the case of a \textbf{single acoustic source} impinging on the array: the signal from the source reaches each microphone with a \textbf{relative delay} that depends on the \textbf{angle of arrival} $\theta$ and the position of each microphone in the array.
+Because the wavefront is assumed to be planar (\textbf{far-field assumption}), the time delay between adjacent microphones is constant:
+
+\[
+\tau = \frac{d \sin(\theta)}{c}, \qquad c\approx 340~\text{m/s}: \quad \text{speed of sound}
+\]
+
+This geometrical configuration allows the propagation model to be expressed in a structured way and forms the basis for many spatial signal processing methods.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{ULA.png}
+    \caption{Uniform Line Array}
+\end{figure}
+
+To proceed with the model derivation, we take the \textbf{first microphone} in the array as the reference point.
+Under this assumption, we can explicitly express the time delay for the $k$-th microphone as a function of the direction of arrival $\theta$:
+
+\[
+\tau_k = (k - 1) \frac{d \sin(\theta)}{c}, \qquad \theta \in [-90^\circ, 90^\circ], \qquad k = 1, 2, \cdots, M
+\]
+
+
+We assume that all microphones in the array are identical and omnidirectional.
+Consequently, we can consider all \textbf{microphones frequency responses} to be unitary and equal:
+
+\[
+H_1(\omega_c) = H_2(\omega_c) = \cdots = H_M(\omega_c) = 1
+\]
+
+By inserting this into the general expression of the propagation vector, we obtain the simplified form:
+
+\[
+\underline{\mathrm{a}}(\theta) =
+\begin{bmatrix}
+    H_1(\omega_c) \ e^{-j\omega_c \tau_1} \\
+    H_2(\omega_c) \ e^{-j\omega_c \tau_2} \\
+    \vdots \\
+    H_M(\omega_c) \ e^{-j\omega_c \tau_M}
+\end{bmatrix}
+\quad \Rightarrow \quad
+\underline{\mathrm{a}}(\theta) = 
+\begin{bmatrix}
+1 \\
+e^{-j \omega_c \frac{d \sin(\theta)}{c}} \\
+\vdots \\
+e^{-j \omega_c (M-1) \frac{d \sin(\theta)}{c}}
+\end{bmatrix}
+\]
+
+\subsubsection{Spatial frequency}
+The terms of the propagation vector correspond to the samples of a complex sinusoid:
+
+\[
+e^{-j \omega_c \frac{d \sin(\theta)}{c} k}, \qquad \quad k = 0, 1, \cdots, M-1
+\]
+
+The frequency of this sinusoid is called \textbf{spatial frequency}:
+
+\[
+\omega_s = \omega_c \frac{d \sin(\theta)}{c}
+\]
+
+For a given time instant, the microphones are \textbf{sampling a sinusoid in the spatial domain} (i.e. on a line), whose frequency is proportional to \(\omega_s\) and depends on the source DOA $\theta$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Spatial frequency.png}
+    \caption{Uniform Line Array: spatial sampling for different DOA $\theta$}
+\end{figure}
+
+\subsubsection{Anti-aliasing condition}
+The complex sinusoid in the propagation vector $\underline{a}(\theta)$ is sampled with \textbf{unitary sampling frequency} $k$:
+
+\[
+\underline{a}(\theta) = \left[ 1 \quad e^{-j\omega_s} \quad \cdots \quad e^{-j(M-1) \ \omega_s} \right]^T
+\]
+
+For the sampling theorem to hold, we must satisfy:
+
+\[
+|\omega_s| \leq \pi
+\]
+
+The anti-aliasing condition can be expressed as a function of the microphone spacing $d$:
+
+\[
+\omega_s = \omega_c \frac{d \sin(\theta)}{c} = 2 \pi \frac{f_c}{c} \cdot d \sin(\theta) = 2\pi \frac{d \sin(\theta)}{\lambda}
+\quad \Rightarrow \quad
+\abs{ 2\pi \frac{d \sin(\theta)}{\lambda}} \leq \pi
+\]
+
+\[
+\Rightarrow \quad d \abs{\sin(\theta)} \leq \frac{\lambda}{2} \quad \Rightarrow \quad d \leq \frac{\lambda}{2}
+\]
+
+\subsection{DOA estimation problem}
+The \textbf{source DOA} is directly related to the \textbf{spatial frequency}.
+Thus, DOA estimation can be brought to the problem of spatial frequency estimation: $N$ sources impinging from different DOAs are characterized by different spatial frequencies.
+
+\textbf{Non-parametric methods} (i.e. spatial filtering) perform DOA estimation without any assumptions about the covariance structure of the array data.
+\textbf{Parametric methods} perform DOA estimation based on a parametrization of the \textbf{covariance structure} of the array data.
+
+\subsection{Non-parametric methods: Spatial filtering}
+The idea is to apply a \textbf{linear combination} of the microphone signals in order to enhance the signal coming from a given direction $\theta$ and to attenuate the signal coming from undesired directions.
+Using the weights $\underline{\mathrm{h}} = \left( h_{1}, h_{2}, \dots, h_{M} \right)^{H}$, the \textbf{spatial-filtered signal} is obtained as:
+
+\[
+y_{F}(t) = \sum_{k=1}^{M} h_{k} \cdot y_{k}(t) = \underline{\mathrm{h}}^{H} \ \underline{\mathrm{y}}(t)
+\]
+
+Assuming that the \textbf{filter} $\underline{\mathrm{h}}$ is \textbf{band-pass} and centered at $\theta$ in the spatial domain, the power of the filtered signal should give a good indication of the energy coming from the direction $\theta$.
+The \textbf{power} of the filtered signal is given by:
+
+\[
+E\left\{ \abs{y_{F}(t)}^{2} \right\} = \underline{\mathrm{h}}^{H} \left[\mathrm{R}\right] \ \underline{\mathrm{h}},
+\qquad
+\left[\mathrm{R}\right] = E\left\{ \underline{\mathrm{y}}(t) \underline{\mathrm{y}}^{H}(t) \right\}: \text{covariance matrix of array data}
+\]
+
+\subsubsection{Analogy with temporal filtering}
+Let us make an analogy between temporal filtering and spatial filtering.
+In the temporal filtering of a sinusoidal input at frequency $\omega$, the temporal samples $u(t), u(t-1), \cdots, u(t-M+1)$ are multiplied by filter coefficients $h_{0}, h_{1}, \cdots, h_{M-1}$ and summed to produce the filtered signal:
+
+\[
+y_{F}(t) = \sum_{k=0}^{M-1} h_{k} \cdot u(t-k) = \underbrace{\left[ \underline{\mathrm{h}}^{H} \underline{\mathrm{a}}(\omega) \right]}_{\text{frequency response}} \ u(t), \qquad \underline{\mathrm{a}}(\omega): \text{frequency steering vector}
+\]
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Temporal sampling.png}
+    \includegraphics[width=0.47\linewidth]{Spatial sampling.png}
+    \caption{Analogy between temporal sampling (left) and spatial sampling (right)}
+\end{figure}
+
+In the spatial filtering of a single narrowband source with DOA equal to $\theta$, the spatial samples $y_{1}(t), y_{2}(t), \cdots, y_{M}(t)$ are multiplied by filter coefficients $h_{1}, h_{2}, \cdots, h_{M}$ and summed to produce the filtered signal:
+
+\[
+y_{F}(t) = \sum_{k=1}^{M} h_{k} \cdot y_{k}(t) = \underbrace{\left[ \underline{\mathrm{h}}^{H} \underline{\mathrm{a}}(\theta) \right]}_{\text{spatial response}} \ s(t), \qquad \underline{\mathrm{a}}(\theta): \text{spatial steering vector}
+\]
+
+\subsubsection{Delay-and-sum beamformer}
+The goal behind the \textbf{delay-and-sum beamformer} is to design a \textbf{spatial band-pass filter} $\underline{\mathrm{h}}(\overline{\theta})$ such that it passes undistorted the signals with a target DOA $\overline{\theta}$ and attenuates all the other DOAs different from $\overline{\theta}$ as much as possible.
+The first condition is met when the spatial response at $\overline{\theta}$ is unitary:
+
+\[
+\underline{\mathrm{h}}^{H}(\overline{\theta}) \ \underline{\mathrm{a}}(\overline{\theta}) = 1
+\]
+
+Assuming that the signal is \textbf{spatially white}, that is $\left[\mathrm{R}\right] = \left[\mathrm{I}_{M}\right]$, minimizing the power from all the directions but $\overline{\theta}$ means solving the following problem:
+
+\[
+\underline{\mathrm{h}}(\overline{\theta}) = \arg \min_{\underline{\mathrm{h}}} \ \underline{\mathrm{h}}^{H} \ \underline{\mathrm{h}} \quad \Rightarrow \quad
+\underline{\mathrm{h}}(\overline{\theta}) = \frac{\underline{\mathrm{a}}(\overline{\theta})}{\underline{\mathrm{a}}^{H}(\overline{\theta}) \ \underline{\mathrm{a}}(\overline{\theta})} = \frac{\underline{\mathrm{a}}(\overline{\theta})}{M}
+\]
+
+The \textbf{power} of the filtered signal becomes:
+
+\[
+E\left\{ \abs{y_{F}(t)}^{2} \right\} = \underline{\mathrm{h}}^{H}(\overline{\theta}) \left[\mathrm{R}\right] \ \underline{\mathrm{h}}(\overline{\theta}) = \frac{\underline{\mathrm{a}}^{H}(\overline{\theta}) \left[\mathrm{R}\right] \ \underline{\mathrm{a}}(\overline{\theta})}{M^{2}}
+\]
+
+The DOAs of the sources can be estimated by evaluating the following \textbf{pseudo-spectrum} function at all the spatial directions:
+
+\[
+p(\theta) = \frac{\underline{\mathrm{a}}^{H}(\theta) \left[\hat{\mathrm{R}}\right] \ \underline{\mathrm{a}}(\theta)}{M^{2}}, 
+\qquad \theta \in \left[ -\frac{\pi}{2}, \frac{\pi}{2} \right], \qquad \left[\hat{\mathrm{R}}\right] = \frac{1}{K} \sum_{t=1}^{K} \ \underline{\mathrm{y}}(t) \ \underline{\mathrm{y}}^{H}(t)
+\]
+
+The matrix $\left[\hat{\mathrm{R}}\right]$ is the \textbf{sample estimate} of the covariance matrix $\left[\mathrm{R}\right]$.
+The DOAs of the $N$ sources are estimated as the $N$ highest peaks of $p(\theta)$.
+
+The name delay-and-sum is due to the fact that the resulting filter weights in $\underline{\mathrm{h}}(\overline{\theta})$ correspond to \textbf{pure delays}.
+The effect of the filter is to \textbf{re-phase the microphone signals} according to the propagation delays, producing constructive \textbf{interference} for the direction $\overline{\theta}$ and destructive interference for the other directions.
+As the filter does not depend on the array data, the spatial response $\underline{\mathrm{h}}(\overline{\theta}) \ \underline{\mathrm{a}}(\overline{\theta})$ can be easily computed.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Beamformer.png}
+    \caption{Delay-and sum beamformer: DOA estimation with $\overline{\theta} = 25^{\circ}$ and $M = 10$ microphones}
+\end{figure}
+
+The beamformer \textbf{resolution} depends on the width of the main lobe of the spatial response.
+For a uniform linear array with \textbf{aperture} $l = (M - 1) d$, the width of the main lobe is approximately given by $\dfrac{\lambda}{l \abs{\cos \overline{\theta}}}$.
+Given two sources with \textbf{angular separation} $\Delta \theta$, located around the frontal direction at $0^{\circ}$, they can be resolved by the pseudo-spectrum function $p(\theta)$ whenever the following condition occurs:
+
+\[
+\Delta \theta > \frac{\lambda}{l}
+\]
+
+In this case, we expect $p(\theta)$ to exhibit two distinct peaks corresponding to the DOAs $\theta_{1}$ and $\theta_{2}$.
+If the condition is not satisfied, a single peak will be visible somewhere in the range $\left[ \theta_{1}, \theta_{2} \right]$, leading to inconsistent DOA estimation.
+
+\subsubsection{Capon method}
+The Capon method is formulated by the following minimization problem, introduced before:
+
+\[
+\underline{\mathrm{h}}(\overline{\theta}) = \arg \min_{\underline{\mathrm{h}}} \ \underline{\mathrm{h}}^{H} \ \left[\mathrm{R}\right] \ \underline{\mathrm{h}},
+\qquad
+\underline{\mathrm{h}}^{H}(\overline{\theta}) \ \underline{\mathrm{a}}(\overline{\theta}) = 1
+\]
+
+Instead of assuming $\left[\mathrm{R}\right] = \left[\mathrm{I}_{M}\right]$, we aim at minimizing the power of signals that actually impinge on the array from directions different from the target one.
+In other words, the Capon method puts effort into attenuating the actual interfering (unwanted) sources, rather than attenuating the energy from all the possible locations.
+The solution becomes:
+
+\[
+\underline{\mathrm{h}}(\overline{\theta}) = \frac{\left[\mathrm{R}\right]^{-1} \ \underline{\mathrm{a}}(\overline{\theta})}{\underline{\mathrm{a}}^{H}(\overline{\theta}) \left[\mathrm{R}\right]^{-1} \ \underline{\mathrm{a}}(\overline{\theta})}
+\]
+
+The corresponding output power becomes:
+
+\[
+E\left\{ \abs{y_{F}(t)}^{2} \right\} = \underline{\mathrm{h}}^{H}(\overline{\theta}) \left[\mathrm{R}\right] \ \underline{\mathrm{h}}(\overline{\theta}) = \frac{1}{\underline{\mathrm{a}}^{H}(\overline{\theta}) \left[\mathrm{R}\right]^{-1} \ \underline{\mathrm{a}}(\overline{\theta})}
+\]
+
+The DOAs are estimated in correspondence to the $N$ highest peaks of the Capon pseudo-spectrum:
+
+\[
+p(\theta) = \frac{1}{\underline{\mathrm{a}}^{H}(\theta) \ \left[\hat{\mathrm{R}}\right]^{-1} \ \underline{\mathrm{a}}(\theta)},
+\qquad \theta \in \left[ -\frac{\pi}{2}, \frac{\pi}{2} \right]
+\]
+
+The filter weights, as well as the spatial response, depend on the data covariance matrix.
+The resolution of the Capon method is not constant but depends on the data and the performance is slightly superior to that of beamforming.
+
+\subsection{Parametric methods}
+Parametric methods represent a powerful alternative to spatial filtering for DOA estimation.
+They leverage a particular \textbf{model of the covariance structure} of the array data.
+The number of sources $N$ is exactly known in advance and it should occur that $N < M$.
+The source signals $s_{1}(t), s_{2}(t), \cdots, s_{N}(t)$ are such that their covariance matrix $\left[\mathrm{R}_{s}\right]$ is non-singular (partial correlation is admitted):
+
+\[
+\mathrm{rank}\left( \left[\mathrm{R}_{s}\right] \right) = N, 
+\qquad \left[\mathrm{R}_{s}\right] = E \left\{ \underline{\mathrm{s}}(t) \ \underline{\mathrm{s}}^{H}(t) \right\}
+\]
+
+The sensor noise is \textbf{spatially white}, with \textbf{independent and identically distributed (i.i.d.)} components having identical variance:
+
+\[
+E \left\{ \underline{\mathrm{e}}(t) \ \underline{\mathrm{e}}^{H}(t) \right\} = \sigma^{2} \left[\mathrm{I}_{M}\right]
+\]
+
+The sensor noise is \textbf{uncorrelated} with the source signals.
+All the DOAs are different, thus they lead to different spatial frequencies:
+
+\[
+\omega_{s_{1}} \neq \omega_{s_{2}} \neq \dots \neq \omega_{s_{N}}
+\]
+
+\subsubsection{Covariance model}
+Under these assumptions, the \textbf{input covariance matrix} can be decomposed as the sum of two components:
+\[
+\left[\mathrm{R}\right] = \left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} + \sigma^{2} \left[\mathrm{I}_{M}\right]
+\]
+
+We remind that $\left[\mathrm{A}\right]$ is the propagation vector:
+
+\[
+\left[\mathrm{A}\right] = 
+\begin{bmatrix}
+\underline{\mathrm{a}}(\theta_1) & \underline{\mathrm{a}}(\theta_2) & \cdots & \underline{\mathrm{a}}(\theta_N)
+\end{bmatrix}_{M \times N}
+\]
+
+Computing the \textbf{eigenvalue decomposition} and sorting the eigenvalues such that $\lambda_{1} \geq \lambda_{2} \geq \cdots \geq \lambda_{M}$, we can rewrite the covariance matrix as:
+
+\[
+\left[\mathrm{R}\right] = \left[ \left[\mathrm{U}\right] \ \left[\mathrm{V}\right] \right]
+\underbrace{
+\begin{bmatrix}
+\lambda_{1} & 0 & & \cdots & & 0 \\
+0 & \ddots & & \\
+& & \lambda_{N} & & & \vdots \\
+\vdots & & & \lambda_{N+1} \\
+& & & & \ddots & 0 \\
+0 & & \cdots & & 0 & \lambda_{M}
+\end{bmatrix}}_{\left[\mathrm{\Lambda}\right]}
+\begin{bmatrix}
+\left[\mathrm{U}\right]^{H} \\
+\left[\mathrm{V}\right]^{H}
+\end{bmatrix}
+\]
+
+The matrix $\left[\mathrm{U}\right]$ contains the orthonormal eigenvectors associated to $\{\lambda_{1}, \dots, \lambda_{N}\}$, while the matrix $\left[\mathrm{V}\right]$ contains the orthonormal eigenvectors associated to $\{\lambda_{N+1}, \dots, \lambda_{M}\}$.
+
+As the source signals and the noise are \textbf{uncorrelated}, we can rewrite the diagonal eigenvalue matrix $\left[\mathrm{\Lambda}\right]$ as:
+
+\[
+\left[\mathrm{\Lambda}\right] = \underbrace{\left[\mathrm{\Lambda}_{s}\right]}_{\text{eigenvalues of } \left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H}} + \underbrace{\left[\mathrm{\Lambda}_{e}\right]}_{\text{eigenvalues of } \sigma^{2} \left[\mathrm{I}_{M}\right]} = \left[\mathrm{\Lambda}_{s}\right] + \sigma^{2} \left[\mathrm{I}_{M}\right]
+\]
+
+As the spatial frequencies $\omega_{s}$ are all different, the corresponding propagation matrix $\left[\mathrm{A}\right]$ is full rank:
+
+\[
+\mathrm{rank}\left( \left[\mathrm{A}\right] \right) = \mathrm{rank}\left( \left[ \underline{\mathrm{a}}(\theta_{1}) \ \underline{\mathrm{a}}(\theta_{2}) \ \dots \ \underline{\mathrm{a}}(\theta_{N}) \right] \right) = N
+\]
+
+Moreover, since $\mathrm{rank}\left( \left[\mathrm{R}_{s}\right] \right) = N$, it must be that:
+
+\[
+\mathrm{rank}\left( \left[\mathrm{A}\right] \ \left[\mathrm{R}_{s}\right] \ \left[\mathrm{A}\right]^{H} \right) = N
+\]
+
+It follows that $\left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H}$ has $M - N$ null eigenvalues:
+
+\[
+\left[\mathrm{\Lambda}_{s}\right] =
+\begin{bmatrix}
+\overline{\lambda}_{1} & & & \\
+& \ddots & & \\
+& & \overline{\lambda}_{N} & \\
+& & & 0 \\
+& & & & \ddots \\
+& & & & & 0
+\end{bmatrix}
+\]
+
+Finally, the eigenvalues of $\left[\mathrm{R}\right]$ can be expressed as:
+
+\[
+\lambda_{k} =
+\left\{
+\begin{array}{lc}
+\overline{\lambda}_{k} + \sigma^{2}, & k = 1, \cdots, N  \\
+\sigma^{2}, & k = N+1, \cdots, M
+\end{array}
+\right.
+\]
+
+Roughly speaking, the eigenvectors in $\left[\mathrm{U}\right]$ are associated with the source signals, while the eigenvectors in $\left[\mathrm{V}\right]$ are associated with noise.
+\textbf{Parametric methods} are derived from the properties of $\left[\mathrm{U}\right]$ and $\left[\mathrm{V}\right]$.
+These matrices can be obtained \textbf{if and only if} the number of sources $N$ is known and $N < M$, and the noise power is lower than the source strengths.
+
+Regarding the properties of $\left[\mathrm{V}\right]$, the eigenvalue decomposition implies that:
+
+\[
+\left[\mathrm{R}\right] \left[\mathrm{V}\right] =
+\left[\mathrm{V}\right]
+\begin{bmatrix}
+\lambda_{N+1} & & \\
+& \ddots & \\
+& & \lambda_{M}
+\end{bmatrix}
+=
+\left[\mathrm{V}\right]
+\begin{bmatrix}
+\sigma^{2} & & \\
+& \ddots & \\
+& & \sigma^{2}
+\end{bmatrix}
+= \sigma^{2}\left[\mathrm{V}\right]
+\]
+
+\clearpage
+
+Replacing the expression of $\left[\mathrm{R}\right]$ we obtain:
+
+\[
+\left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] + \sigma^{2} \left[\mathrm{V}\right] = \sigma^{2} \left[\mathrm{V}\right]
+\quad \Rightarrow \quad
+\left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] = \left[\mathrm{0}\right]_{M \times (M-N)}
+\quad \Rightarrow \quad
+\left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] = \left[\mathrm{0}\right]_{N \times (M-N)}
+\]
+
+Regarding the properties of $\left[\mathrm{U}\right]$, the eigenvalue decomposition implies that:
+
+\[
+\left[\mathrm{R}\right] \left[\mathrm{U}\right] =
+\left[\mathrm{U}\right]
+\begin{bmatrix}
+\lambda_{1} & & \\
+& \ddots & \\
+& & \lambda_{N}
+\end{bmatrix}
+=
+\left[\mathrm{U}\right]
+\begin{bmatrix}
+\overline{\lambda}_{1} & & \\
+& \ddots & \\
+& & \overline{\lambda}_{N}
+\end{bmatrix}
++
+\left[\mathrm{U}\right]
+\begin{bmatrix}
+\sigma^{2} & & \\
+& \ddots & \\
+& & \sigma^{2}
+\end{bmatrix}
+= \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right] + \sigma^{2} \left[\mathrm{U}\right]
+\]
+
+Replacing the expression of $\left[\mathrm{R}\right]$ we obtain:
+
+\[
+\left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{U}\right] + \sigma^{2} \left[\mathrm{U}\right] = \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right] + \sigma^{2} \left[\mathrm{U}\right]
+\quad \Rightarrow \quad
+\left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{U}\right] = \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right]
+\]
+
+Since $\left[\mathrm{\overline{\Lambda}}\right]$ is non-singular, it can be inverted, leading to:
+
+\[
+\left[\mathrm{U}\right] = \left[\mathrm{A}\right] \ \underbrace{\left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right]^{-1}}_{\left[\mathrm{C}\right] \ \text{non-singular matrix}}
+\]
+
+\subsubsection{Parametric methods: MUSIC (Multiple Signal Classification)}
+MUSIC exploits the fact that:
+
+\[
+\left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] = \left[\mathrm{0}\right]_{N \times (M-N)}
+\]
+
+This expression can be rewritten in scalar form as:
+
+\[
+\left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] \left[\mathrm{V}\right]^{H} \left[\mathrm{A}\right] = \left[\mathrm{0}\right]
+\]
+
+Its solutions are given by the propagation vectors corresponding to the DOAs:
+
+\[
+\underline{\mathrm{a}}^{H}(\theta_{k}) \left[\mathrm{V}\right] \left[\mathrm{V}\right]^{H} \underline{\mathrm{a}}(\theta_{k}) = 0,
+\qquad k = 1, \cdots, N
+\]
+
+The MUSIC algorithm proceeds as follows:
+\begin{enumerate}
+    \item Estimate the covariance matrix:
+    
+    \[
+    \left[\hat{\mathrm{R}}\right] = \frac{1}{K} \sum_{t=1}^{K} \ \underline{\mathrm{y}}(t) \ \underline{\mathrm{y}}^{H}(t)
+    \]
+    
+    \item From the eigenvalue decomposition, estimate the eigenvectors $\left[\hat{\mathrm{V}}\right]$ related to noise
+    
+    \item Estimate the DOAs as the $N$ highest peaks of the pseudo-spectrum function:
+    
+    \[
+    p(\theta) = \frac{1}{\underline{\mathrm{a}}^{H}(\theta) \left[\hat{\mathrm{V}}\right] \left[\hat{\mathrm{V}}\right]^{H} \underline{\mathrm{a}}(\theta)},
+    \qquad \theta \in \left[ -\frac{\pi}{2}, \frac{\pi}{2} \right]
+    \]
+\end{enumerate}
+
+\subsubsection{Parametric methods: ESPRIT (Estimation of Signal Parameters via Rotational Invariance Techniques)}
+ESPRIT exploits the fact that:
+
+\[
+\left[\mathrm{U}\right] = \left[\mathrm{A}\right] \ \underbrace{\left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right]^{-1}}_{\left[\mathrm{C}\right] \ \text{non-singular matrix}}
+\]
+
+Given $M$ microphones, we split the array into two identical sub-arrays, each containing $\overline{M} = M - 1$ elements:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{ESPRIT subarrays.png}
+    \caption{ESPRIT splitting of the microphone array}
+\end{figure}
+
+From the array data model:
+
+\[
+\underline{\mathrm{y}}(t) = \left[\mathrm{A}\right] \underline{\mathrm{s}}(t) + \underline{\mathrm{e}}(t)
+\]
+
+We derive the sub-array models:
+
+\[
+\left\{
+\begin{array}{cc}
+\underline{\mathrm{y}}_{1}(t) = \left[\mathrm{A}_{1}\right] \ \underline{\mathrm{s}}(t) + \underline{\mathrm{e}}_{1}(t),
+& \left[\mathrm{A}_{1}\right] = \left[ \left[\mathrm{I}_{\overline{M}}\right] \ \left[\mathrm{0}\right] \right] \left[\mathrm{A}\right] \\
+\underline{\mathrm{y}}_{2}(t) = \left[\mathrm{A}_{2}\right] \ \underline{\mathrm{s}}(t) + \underline{\mathrm{e}}_{2}(t),
+& \left[\mathrm{A}_{2}\right] = \left[ \left[\mathrm{0}\right] \ \left[\mathrm{I}_{\overline{M}}\right] \right] \left[\mathrm{A}\right]
+\end{array}
+\right.
+\]
+
+We may prove that:
+
+\[
+\left[\mathrm{A}_{2}\right] = \left[\mathrm{A}_{1}\right] \left[\mathrm{D}\right],
+\qquad
+\left[\mathrm{D}\right] =
+\begin{bmatrix}
+e^{-j\omega_{s_{1}}} & & \\
+& \ddots & \\
+& & e^{-j\omega_{s_{N}}}
+\end{bmatrix}
+\]
+
+From the matrix $\left[\mathrm{D}\right]$ we can compute the spatial frequencies, which are directly related to the source DOAs: this estimation is our goal.
+
+Consider the covariance matrices $\left[\mathrm{R}_{1}\right]$ and $\left[\mathrm{R}_{2}\right]$ for the two sub-arrays.
+From their eigenvalue decompositions, we can compute the eigenvectors $\left[\mathrm{U}_{1}\right]$ and $\left[\mathrm{U}_{2}\right]$ associated with the sources, which can also be computed as:
+
+\[
+\left\{
+\begin{array}{c}
+\left[\mathrm{U}_{1}\right] = \left[ \left[\mathrm{I}_{\overline{M}}\right] \ \left[\mathrm{0}\right] \right] \left[\mathrm{U}\right] \\
+\left[\mathrm{U}_{2}\right] = \left[ \left[\mathrm{0}\right] \ \left[\mathrm{I}_{\overline{M}}\right] \right] \left[\mathrm{U}\right]
+\end{array}
+\right.
+\]
+
+Moreover, we know that $\left[ \mathrm{U} \right] = \left[ \mathrm{A} \right] \left[ \mathrm{C} \right]$, 
+where $\left[ \mathrm{C} \right]$ is an invertible matrix.  
+It follows that:
+
+\[
+\left\{
+\begin{array}{l}
+\left[ \mathrm{U}_1 \right] 
+= \left[ \left[ \mathrm{I}_{\overline{M}} \right] \ \left[ 0 \right] \right] \left[ \mathrm{U} \right] 
+= \left[ \left[ \mathrm{I}_{\overline{M}} \right] \ \left[ 0 \right] \right] \left[ \mathrm{A} \right] \left[ \mathrm{C} \right] 
+= \left[ \mathrm{A}_1 \right] \left[ \mathrm{C} \right] \\
+\left[ \mathrm{U}_2 \right] 
+= \left[ \left[ 0 \right] \ \left[ \mathrm{I}_{\overline{M}} \right] \right] \left[ \mathrm{U} \right] 
+= \left[ \left[ 0 \right] \ \left[ \mathrm{I}_{\overline{M}} \right] \right] \left[ \mathrm{A} \right] \left[ \mathrm{C} \right] 
+= \left[ \mathrm{A}_2 \right] \left[ \mathrm{C} \right]
+\end{array}
+\right.
+\quad \Rightarrow \quad
+\left\{
+\begin{array}{l}
+\left[ \mathrm{A}_1 \right] = \left[ \mathrm{U}_1 \right] \left[ \mathrm{C} \right]^{-1} \\
+\left[ \mathrm{A}_2 \right] = \left[ \mathrm{U}_2 \right] \left[ \mathrm{C} \right]^{-1}
+\end{array}
+\right.
+\]
+
+Replacing the expression for $\left[ \mathrm{A}_2 \right]$, we obtain:
+
+\[
+\left[ \mathrm{A}_2 \right] = \left[ \mathrm{A}_1 \right] \left[ \mathrm{D} \right]
+\quad \Rightarrow \quad
+\left[ \mathrm{U}_2 \right] 
+= \left[ \mathrm{U}_1 \right] \left[ \mathrm{C} \right]^{-1} \left[ \mathrm{D} \right] \left[ \mathrm{C} \right] 
+= \left[ \mathrm{U}_1 \right] \left[ \mathrm{\Phi} \right]
+\]
+
+The matrix $\left[ \mathrm{\Phi} \right] = \left[ \mathrm{C} \right]^{-1} \left[ \mathrm{D} \right] \left[ \mathrm{C} \right]$ has the same eigenvalues as $\left[ \mathrm{D} \right]$.
+The ESPRIT algorithm proceeds as follows:
+\begin{enumerate}
+    \item Compute the sample covariance matrix $\hat{[ \mathrm{R} ]}$
+    
+    \item From the eigenvalue decomposition, estimate $\hat{[ \mathrm{U}_1 ]}$ and $\hat{[ \mathrm{U}_2 ]}$
+    
+    \item Compute the least-squares estimate of $[ \mathrm{\Phi} ]$:
+    
+    \[
+    \hat{[ \mathrm{\Phi} ]} = \left( \hat{[ \mathrm{U}_1 ]}^{H} \hat{[ \mathrm{U}_1 ]} \right)^{-1} \hat{[ \mathrm{U}_1 ]}^{H} \hat{[ \mathrm{U}_2 ]}
+    \]
+    
+    \item Compute the eigenvalues of $\hat{[ \mathrm{\Phi} ]}$: $\nu_1, \cdots, \nu_N$
+    
+    \item Estimate the spatial frequencies as:
+    
+    \[
+    \omega_{s_k} = - \arg(\nu_k), \qquad k = 1, \cdots, N
+    \]
+    
+    \item Estimate the DOAs accordingly
+\end{enumerate}
+
+\clearpage

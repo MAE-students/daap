@@ -1,0 +1,761 @@
+\section{Time and Pitch Scaling}
+
+\subsection{Introduction}
+In various audio applications, we want to control both time evolution and pitch independently.
+We talk about \textbf{time scaling} to refer about controlling and modifying the time-evolution of a signal without altering its spectral components.
+We talk about \textbf{pitch scaling} to refer about controlling and modifying the pitch of a signal without altering the temporal evolution.
+
+We may think of different applications that need this kind of elaboration:
+
+\begin{itemize}
+    \item \textbf{Synthesis by sampling}: reducing memory requirements for sampling synthesizers, speech synthesis
+    \item \textbf{Post-synchronization}: synchronizing audio and video
+    \item \textbf{Data compression}: shrinking the signal, transmitting it, and expanding it after reception
+    \item \textbf{Reading for the blind}: ‘\textit{reading by listening}’ is a much slower process than sight reading.
+    Time-scale modification makes it possible to increase the listening rate, and to scan an audio recording as one can do for a written text
+    \item \textbf{Foreign language learning}: improve listening skills through a progressive increment of the rate of elocution
+    \item \textbf{Computer interface}: overcome the ‘time bottleneck’ often associated with voice interfaces
+    \item \textbf{Post-production sound editing}: correct the pitch of an off-key musical note to save a take 
+    \item \textbf{Musical composition}: provide a composer with independent control over time and pitch on pre-recorded material for compositional purposes
+    \item \textbf{Voice transformation}
+\end{itemize}
+
+The problem we face when we make simple time-frequency elaborations is that time and frequency domains are inherently linked: to perform independent time and pitch scaling, we need to bypass the \textbf{Fourier scaling theorem}.
+Whenever we try to modify the time axis, we make an inverse modification of the frequency axis:
+
+\[
+x(t) \overset{\mathcal{F}}{\longrightarrow} X(f) \quad \Rightarrow \quad x(\alpha t) \overset{\mathcal{F}}{\longrightarrow} \frac{1}{\abs{\alpha}} X\left(\frac{f}{\alpha}\right)
+\]
+
+Let us consider the example of taking half the length (in time) of a sinusoidal signal.
+We could apply subsampling (of factor 2) to obtain half samples and define a new signal of half length: the problem is that the new signal has increased frequency (of factor 2).
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{Time scaling issue 1.png}
+    \includegraphics[width=0.25\linewidth]{Time scaling issue 2.png}      
+    \caption{Time scaling (of factor 2) obtained by simple subsampling}
+\end{figure}
+
+\clearpage
+
+\subsection{Formal problem definition}
+It is difficult to define time-scaling or pitch-scaling for a general signal because \textbf{time and frequency are not independent}.
+It is easier to refer to a \textbf{parametric model} of audio signals.
+
+Let us consider a \textbf{sinusoidal model}: the signal is a sum of \(I\) sinusoids, each one with time-varying amplitude \(A_i\) and (angular) frequency \(\omega_i\).
+
+\[
+x(t) = \sum_{i=1}^{I(t)} A_i(t) \ e^{j\phi_i(t)}, \qquad \phi_i(t) = \int_{-\infty}^{t} \omega_i(\tau) \ d\tau
+\]
+
+It makes it easier to understand both temporal and frequency evolution.
+
+\subsubsection{Ideal time scaling}
+We want to obtain a new signal \(x'\) in the \textbf{scaled time axis} \(t'\).
+We define a \textbf{time warping function} \(T\) to map the original function into the new one:
+
+\[
+t \longleftarrow t'=T(t) \quad \Rightarrow \quad x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \omega_i\left(T^{-1}(\tau)\right) \ d\tau
+\]
+
+The instantaneous amplitude of the \textit{i}-th sinusoid at time \(t'\) in the time-scaled signal corresponds to the instantaneous amplitude in the original signal at time \(t = T^{–1}(t')\).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Ideal time scaling.png}
+    \caption{Ideal time scaling with \(T(t) = \dfrac{t}{2}\)}
+\end{figure}
+
+We remind that in a sinusoidal model we directly control amplitude and frequency (but not phase).
+
+\subsubsection{Ideal pitch scaling}
+We want now to obtain a new signal \(x'\) with a new phase \(\phi'\), which takes into account the frequency modifications for each time instant thanks to the \textbf{pitch modification factor} \(\alpha\):
+
+\[
+\omega_i(t) \longleftarrow \alpha(t) \omega_i(t) \quad \Rightarrow \quad x'(t') = \sum_{i=1}^{I(t')} A_i(t') \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \alpha(\tau) \omega_i(\tau) \ d\tau
+\]
+
+The sinusoids in the modified signal at time \(t'\) have the same amplitude as in the original signal at time \(t=t'\), while their instantaneous frequencies are multiplied by \(\alpha(t)\).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Ideal pitch scaling.png}
+    \caption{Ideal pitch scaling with \(\alpha(t)=\dfrac{1}{2}\)}
+\end{figure}
+
+As before, in a sinusoidal model we directly control amplitude and frequency (but not phase).
+
+\subsubsection{Ideal combined time-pitch scaling}
+To implement both time and pitch scaling, we need both the \textbf{time warping function} \(T(t)\) and the \textbf{pitch modification factor} \(\alpha(t)\):
+
+\[
+x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \alpha\left(T^{-1}(\tau)\right) \omega_i\left(T^{-1}(\tau)\right) \ d\tau
+\]
+
+The sinusoids in the modified signal at time \(t'\) have the same amplitude as in the original signal at time \(t=T^{-1}(t')\), while their instantaneous frequencies are multiplied by \(\alpha(t)\).
+
+\subsection{Duality Principle}
+The \textbf{duality principle} states that time scaling can be obtained by pitch scaling and time warping, while pitch scaling can be obtained by time scaling and time warping.
+\textbf{Time warping} consists in simple \textbf{resampling}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Duality principle.png}
+    \caption{Duality principle diagram}
+\end{figure}
+
+Let us consider the ideal time scaling expression:
+
+\[
+x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ \exp \left\{j \int_{-\infty}^{t'} \omega_i\left(T^{-1}(\tau)\right) \ d\tau\right\}
+\]
+
+We apply time warping as:
+
+\[
+t' \longleftarrow T(t') \quad \Rightarrow \quad y(t') = x'\left(T(t')\right) = \sum_{i=1}^{I(t')} A_i(t') \ \exp \left\{j \int_{-\infty}^{T(t')} \omega_i\left(T^{-1}(\tau)\right) \ d\tau\right\}
+\]
+
+We perform the change of variable $\tau' = T^{-1}(\tau)$:
+
+\[
+\tau = T(\tau'), \quad d\tau = dT(\tau') = \frac{dT}{d\tau'} d\tau' \quad \Rightarrow \quad y(t') = \sum_{i=1}^{I(t')} A_i(t') \ \exp \left\{j \int_{-\infty}^{t'} \left(\frac{dT}{d\tau'}\right) \omega_i(\tau') \ d\tau' \right\}
+\]
+
+The final expression is the same of the following pitch scaling:
+
+\[
+\alpha(t) = \frac{dT}{d\tau'} \quad \Rightarrow \quad y(t') = \sum_{i=1}^{I(t')} A_i(t') \ \exp \left\{j \int_{-\infty}^{t'} \underbrace{\left(\frac{dT}{d\tau'}\right)}_{\alpha(\tau')} \omega_i(\tau') \ d\tau' \right\}
+\]
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{Daulity principle demo.png}
+    \caption{Duality principle: pitch scaling of \(\alpha(t)= 2\)}
+\end{figure}
+
+
+\subsection{Parametric methods}
+We define different time-pitch scaling methods:
+
+\begin{itemize}
+    \item Model-based (\textbf{parametric}): sinusoidal modelling in frequency domain
+    \item Unstructured (\textbf{non-parametric}): in frequency domain (STFT-based), or granular methods (splicing) in time domain
+\end{itemize}
+
+The idea behind \textbf{parametric frequency-based techniques} is to modify directly amplitude and frequency trajectories of the signal.
+We start from the signal \textbf{analysis} (STFT or filterbank), we define the trajectories (\textbf{peak detection and tracking}), we modify them appropriately (\textbf{partials modification}) and we obtain the final result by \textbf{synthesis} (bank of oscillators).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Parametric frequency-based.png}
+    \caption{Parametric frequency-based method: peak tracking}
+\end{figure}
+
+It is \textbf{parametric}, which means it works with amplitude and frequency trajectories that drive the oscillators.
+So, this approach works both with sinusoidal and spectral modelling (harmonic and noise components) in analysis.
+
+\subsection{Non-parametric time-domain methods: Pitch-independent}
+Let us introduce non-parametric methods in the time domain.
+
+The main idea is to \textbf{decompose} the signal into successive short segments (10-40 ms), which will be placed, repeated or discarded accordingly to the desired scaling.
+We obtain \textbf{time compression} by discarding some of the frames, while \textbf{time expansion} is possible by repeating some of the segments.
+The remaining frames are left unchanged.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{Time domain pitch independent.png}
+    \caption{Time-scale expansion by segments repetition}
+\end{figure}
+
+The advantages of such a technique are that is \textbf{computationally less demanding} and is particularly suitable for \textbf{real-time operations}.
+In addition to that, we remind that by the \textbf{duality principle} we are able to perform pitch-scaling operation adding resampling to this method.
+
+\subsubsection{Modified tape recorder}
+Let us analyse how \textbf{analog devices}, such as the ELTRO, used \textbf{modified tape recorders} to alter pitch and timing by varying playback speed and overlap.
+We have a recorded audio signal on a magnetic tape (thanks to the record head) and we want to read the audio samples using moving playback heads: keeping the playback heads still means reading all time samples with the same velocity they have been recorded.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.25\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Tape recorder 1.png}
+    \end{minipage}
+    \hspace{1.5cm}
+    \begin{minipage}[c]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Tape recorder 2.png}
+    \end{minipage}
+    \caption{Tape recorder (left) and ELTRO pitch scaler (right)}
+\end{figure}
+
+Rotating the playback heads in the \textbf{opposite direction} (with respect to the tape movement) means that the audio input is played \textbf{faster}, thus skipping some samples and resulting in \textbf{pitch increase}.
+On the other hand, rotating the head in the \textbf{same direction} means that the audio input is played \textbf{slower}, thus repeating some samples and resulting in \textbf{pitch decrease}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{Tape recorder pitch.png}
+    \includegraphics[width=0.45\linewidth]{Tape recorder time.png}
+    \caption{Modified tape recorder: playout cylinder (left), time-scaling scheme (right)}
+\end{figure}
+
+Whenever the playback heads reach the starting point (B) or the ending point (A), the played frame fades out and the successive frame fades in simultaneously, simulating the overlap of consecutive segments (\textbf{crossfading}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Tape recorder principle.png}
+    \caption{Modified tape recorder: working principle}
+\end{figure}
+
+We can implement the duality principle to achieve \textbf{time scaling} by adding a second tape recorder with a \textbf{controlled playout speed}.
+
+\subsubsection{Digital implementation}
+We can think of the magnetic tape section upon the rotating cylinder as a buffer (\textbf{register}) of pre-defined length $N$: the record head becomes a \textbf{writing index} $i$, while the playback head becomes a \textbf{reading index} $j$.
+Once the indexes reach the final element, they will go back to the beginning thanks to the mod$_N$ operation.
+We talk about \textbf{splicing}.
+
+The relative speed of the reading index is given by $\alpha$:
+
+\begin{itemize}
+    \item $\alpha < 1$: the reading process is slower than the writing process, meaning that we will skip part of the buffer, which is replaced by new samples
+    \item $\alpha > 1$: the reading process is faster than the writing process, meaning that we will read part of the buffer twice
+\end{itemize}
+
+When an index passes the other, we need to implement \textbf{crossfading} to interpolate between the end of a segment and the beginning of the consecutive one (\textbf{smooth splicing}).
+A way to do it is to replicate the \textbf{circular register}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Digital tape recorder 1.png}
+    \includegraphics[width=0.53\linewidth]{Digital tape recorder 2.png}
+    \caption{Digital implementation of the tape recorder: single register (left), circular register (right)}
+\end{figure}
+
+\subsubsection{I/O time mapping}
+
+When we apply time-scaling operations, we can define the relation between input elapsed time $t_a$ and output elapsed time $t_s = \beta t_a$ based on \textbf{splicing}.
+The playout speed depends on $\beta$:
+
+\begin{itemize}
+    \item $\beta > 1$: slowed-down playout, the output signal periodically repeats input splices (or parts thereof)
+    \item $\beta < 1$: speeded-up playout, the output signal periodically skips input splices (or parts thereof)
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{IO slow.png}
+    \includegraphics[width=0.4\linewidth]{IO fast.png}
+    \caption{I/O time mapping: slowed-down (left) and speeded-up playout (right)}
+\end{figure}
+
+\subsubsection{Splicing artifacts}
+
+An issue we encounter when implementing time-scaling operations with splicing is the creation of \textbf{artifacts} at the junctions of the splices.
+\textbf{Crossfading} guarantees continuity, but does \textbf{not guarantee alignment}, so does not eliminate artifacts given by misalignments.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{Splicing artifacts.png}
+    \caption{Splicing artifacts}
+\end{figure}
+
+\subsection{Non-parametric time-domain methods: Waveform similarity}
+
+Let us introduce \textbf{periodicity-driven} time-domain methods, which are suited for signals that present periodicity.
+
+For \textbf{strictly periodic} signals, the splicing method works well as long as the duration of the repeated (or discarded) segments is equal to a multiple of the period.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Periodic segments.png}
+    \caption{Segmentation of a periodic signal}
+\end{figure}
+
+This consideration is still valid for \textbf{nearly periodic} signals, such as voiced speech and pitched musical sounds.
+Common methods of this kind are:
+
+\begin{itemize}
+  \item \textbf{SOLA} (Synchronous Overlap and Add)  
+  \item \textbf{PSOLA} (Pitch-Synchronous Overlap and Add)
+\end{itemize}
+
+\subsubsection{SOLA: Synchronous Overlap and Add}
+
+Let us consider the example of time-stretch:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{SOLA flowchart.png}
+    \caption{Synchronous Overlap and Add (SOLA)}
+\end{figure}
+
+During the \textbf{analysis} step, we segment the original signal using fixed-length overlapping windows (i.e. 50\% in the figure above): each segment will be repeated or discarded accordingly.
+The characteristic of SOLA shows up in the \textbf{synthesis} step: the position in time of a certain segment in the output signal (synthesis time shift), and so the length of the overlap, is evaluated to obtain the \textbf{best alignment} by means of \textbf{cross-correlation} $c_c(t_a^u,k)$ \textbf{maximization}.
+
+Each new segment extracted in the analysis step is inserted into the output signal starting from a predicted synthesis time.
+In order to avoid any \textbf{misalignment discontinuity} at the segment boundaries, we evaluate a range of \textbf{small offsets} $k$ around the predicted synthesis time, looking for the value that best aligns the new segment with the end of the previously placed one.
+To evaluate this alignment, we compute the \textbf{normalized cross-correlation} between the overlapping region of the previous output and the new segment (shifted by $k$).
+
+The \textbf{optimal synthesis time shift} \(k_s\) maximizes the normalized cross-correlation between two consecutive overlap regions of length \(N_c\):
+
+\[
+k_s = \arg \max_k \left[c_c(t_a^u, k)\right], \qquad
+c_c(t_a^u, k) = \frac{\sum_{i=1}^{N_c}x(t_a^u+i)\ x(t_a^u+i+k)}{\sqrt{\sum_{i=1}^{N_c}x^2(t_a^u+i)} \sqrt{\sum_{i=1}^{N_c}x^2(t_a^u+i+k)}}
+\]
+
+Alternatively, we could minimize the \textbf{average magnitude difference function} (AMDF):
+
+\[
+k_s' = \arg \min_k \left[f_c(t_a^u,k)\right], \qquad f_c(t_a^u,k) = \frac{1}{N_c}\sum_{i=1}^{N_c} \abs{x(t_a^u+i)-x(t_a^u+i+k)}
+\]
+
+The two shifts $k_s$ and $k_s'$ are very similar:
+
+\[
+k_s' = \arg \min_k \left[f_c(t_a^u, k) \right] = \arg \min_k \left[ \frac{1}{N_c} \sum_{i=1}^{N_c} \abs{x(t_a^u + i) - x(t_a^u + i + k)} \right]
+\approx \arg \min_k \left[ \frac{1}{N_c} \sum_{i=1}^{N_c} \left( x(t_a^u + i) - x(t_a^u + i + k) \right)^2 \right]
+\]
+
+\[
+= \arg \min_k \left[ \frac{1}{N_c} \sum_{i=1}^{N_c} \left[ x^2(t_a^u + i) + x^2(t_a^u + i + k) - 2x(t_a^u + i)x(t_a^u + i + k) \right] \right]
+\]
+
+\[
+\approx \arg \min_k \left[ 2E_x - \frac{2}{N_c} \sum_{i=1}^{N_c} x(t_a^u + i) x(t_a^u + i + k) \right] \qquad \qquad E_x: \text{energy of $N_c$ samples of the signal}
+\]
+
+\[
+= -\arg \min_k \left[ \sum_{i=1}^{N_c} x(t_a^u + i) x(t_a^u + i + k) \right]
+= \arg \max_k \left[ \sum_{i=1}^{N_c} x(t_a^u + i) x(t_a^u + i + k) \right]
+\]
+
+Once the optimal alignment is determined, the overlapping regions are smoothly combined using a \textbf{crossfading window} (i.e. Hann window), ensuring continuity across segments in both amplitude and phase.
+
+
+\subsubsection{PSOLA: Pitch-Synchronous Overlap and Add}
+
+PSOLA is based on the assumption that the local value of the \textbf{pitch} is known as well as the locations of \textbf{glottal pulses} (peaks of pressure resulting from the rapid closure of the vocal folds).
+The idea is to extract the signal segments around the glottal pulses and to add them using a different rate (requires re-windowing), which means imposing the new glottal pulses position.
+This \textbf{pitch-scaling} modification does not shift the formants, but only the \textbf{density of glottal pulses}: this makes it very suitable for voice processing.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{PSOLA concept.png}
+    \caption{Pitch-Synchronous Overlap and Add (PSOLA)}
+\end{figure}
+
+This technique is patented by France Telecom (CNET) and is suited to change pitch from 0.5 to 2 times, implementing smoother transitions.
+
+PSOLA is particularly well suited for pitch-scaling of the voice, as it takes advantage of the fact that voiced speech is generated by filtering a \textbf{train of glottal pulses} through the vocal tract (low-pass filter like).
+These glottal pulses are sharp bursts of pressure resulting from the rapid closure of the vocal folds.
+
+The vocal signal can be modelled as the convolution of an impulse train with the vocal tract's \textbf{impulse response} $g(t)$, which is largely \textbf{invariant} with respect to the density of the glottal pulses: the voice formants (i.e. shape of $g(t)$) does not move with the pitch.
+As a result, PSOLA can modify the pitch without shifting the formants, which \textbf{preserves the timbre} of the voice.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Vocal tract IR.png}
+    \caption{Voice synthesis: glottal impulses and vocal tract IR $g(t)$}
+\end{figure}
+
+Unlike SOLA, which may inadvertently scale both pitch and formants by blindly shifting windows, PSOLA explicitly aligns its analysis windows with the glottal pulses: this allows to isolate and manipulate only the periodic excitation structure of the voice, while maintaining spectral envelope stability.
+
+Therefore, pitch scaling in PSOLA is achieved by \textbf{adjusting} the distance between \textbf{consecutive window centers} in the OLA process of reconstruction, effectively controlling the \textbf{excitation rate} without disturbing the vocal tract filtering.
+The effectiveness of PSOLA depends on correctly identifying the \textbf{positions} of the \textbf{pitch marks}, which indicate the instants of glottal excitation and are used to center the short-time analysis windows and define the structure of synthesis.
+
+When performing \textbf{pitch scaling}, it may be necessary to apply a different windowing function to adapt to the altered spacing between glottal pulses (i.e. \textbf{re-windowing}).
+On the other hand, in the case of \textbf{time scaling} we may keep the original \textbf{pitch-centered segments}, making re-windowing not required: time scaling is then achieved by \textbf{repeating} or \textbf{skipping} those pitch-centered splices during reconstruction.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{PSOLA time scaling.png}
+    \caption{PSOLA-based time-scaling modification}
+\end{figure}
+
+It is important to note that the time-domain implementation of PSOLA pitch scaling does not perfectly obey the \textbf{duality principle} discussed earlier.
+A time scaling followed by reverse time-warping, which produces pitch scaling, affects the formants.
+This reveals that the \textit{duality} between time and pitch scaling is \textit{not so symmetric} in the time domain.
+PSOLA remains well suited for pitch modification from 0.5 to 2 times the original pitch, while keeping the perceptual quality of the voice.
+
+As an example, reconstructing the signal with the same pitch, the output speech waveform will be perceptually indistinguishable from the original one:
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{PSOLA reconstruction 1.png}
+    \end{minipage}
+    \hspace{0.4cm}
+    \begin{minipage}{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{PSOLA reconstruction 1.5.png}
+    \end{minipage}
+    \caption{PSOLA example: perfect reconstruction}
+\end{figure}
+
+Adjusting the same analysis-synthesis logic accordingly, it is possible to implement both pitch and time scaling:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{PSOLA reconstruction 2.png}
+    \hspace{1.5cm}
+    \includegraphics[width=0.4\linewidth]{PSOLA reconstruction 3.png}
+    \caption{PSOLA examples: pitch reduction (left) and time duration increase (right)}
+\end{figure}
+
+\subsubsection{Computation of synthesis pitchmarks (\textit{optional})}
+
+Let us consider pitch modification of 1.5:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Pitchmarks pitch.png}
+    \caption{Synthesis pitchmarks for pitch scaling}
+\end{figure}
+
+We define analysis time instants $t_a^i$ and $t_a^{i+1}$ and synthesis time instants $t_s^i$ and $t_s^{i+1}$, which describe the \textit{pitch periods} $P$ and $P'$ (distances between pitchmarks in analysis and synthesis time).
+
+\[
+\begin{cases}
+    P(t_a^i) = t_a^{i+1} - t_a^i \\
+    P'(t_s^i) = t_s^{i+1} - t_s^i 
+\end{cases} \qquad \Rightarrow \qquad t_a^{i+1} = t_a^i + P(t_a^i), \qquad t_s^{i+1} = t_s^i + P'(t_s^i)
+\]
+
+The \textit{pitch} $P'(t_s^i)$ estimated at a given time on the resulting sound is the average value of the ratio between time-varying pitch $P(t)$ and pitch scaling factor $\alpha(t)$:
+
+\[
+P'(t_s^i) = \frac{1}{t_s^{i+1} - t_s^i} \int_{t_s^i}^{t_s^{i+1}} \frac{P(t)}{\alpha(t)} \ dt \quad \Rightarrow \quad
+t_s^{i+1} = t_s^i + \frac{1}{t_s^{i+1} - t_s^i} \int_{t_s^i}^{t_s^{i+1}} \frac{P(t)}{\alpha(t)} \ dt
+\]
+
+
+Let us consider time scaling of 1.5:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Pitchmarks time.png}
+    \caption{Synthesis pitchmarks for time scaling}
+\end{figure}
+
+We introduce a time transformation $T(t)$ to define the synthesis time axis $t_s$:
+
+\[
+t_s = T(t_v^i), \qquad T(t) = \int_0^t \beta(\tau) \ d\tau, \qquad t_v^i = t_a^i
+\]
+
+Therefore:
+
+\[
+t_v^i = T^{-1}(t_s^i), \qquad t_s^{i+1} - t_s^i = \frac{1}{t_v^{i+1} - t_v^i} \int_{t_v^i}^{t_v^{i+1}} P(t) \ dt
+\]
+
+\subsubsection{From pitchmarks to waveform}
+
+A simple reconstruction strategy in PSOLA begins by computing the nearest \textbf{analysis pitchmark} for each \textbf{virtual synthesis pitchmark}.
+Once the nearest analysis mark is identified, the corresponding analysis frame (centered at that pitchmark) is copied and aligned with the synthesis pitchmark.
+
+The resulting segments are overlapped and added together (OLA) to produce the output waveform.
+In basic systems, this is achieved by direct alignment, while more refined approaches use \textbf{linear interpolation} between two adjacent analysis frames when the virtual synthesis pitch mark falls between them.
+
+The perceptual quality of the prosody-modified signal depends strongly on the \textbf{accuracy of the pitchmark estimation}.
+In general, the more precisely the glottal closure instants (or epochs) are located, the more natural the resulting speech sounds. Therefore, using reliable methods to estimate pitch epochs significantly improves the outcome of PSOLA-based transformations.
+
+\subsubsection{Remarks on time-domain methods}
+
+Time-domain methods are computationally \textbf{efficient} and perform \textbf{reliably} with small modification factors (pitch or time scaling factor close to 1).
+This makes them especially well suited for \textbf{real-time applications}, where speed and low processing overhead are crucial.
+As a result, they are often used in embedded systems and consumer products (such as telephone answering machines, voice changers and smartphone applications).
+
+However, time-domain methods typically degrade in performance when applied to signals with significant \textbf{background noise}, \textbf{echoes} or \textbf{reverberation}.
+These types of interference reduce the reliability of pitch detection and alignment, which are essential for accurate synthesis.
+
+In addition to that, for \textbf{large modification factors}, time-domain techniques are no longer sufficient: more elaborate frequency-domain methods are needed to preserve signal quality and intelligibility.
+
+\subsection{Non-parametric STFT-based methods}
+
+In the \textbf{STFT domain}, we may stretch or compress the temporal axis without affecting the frequency domain, obtaining the audio signal going back in the time domain.
+It becomes even possible to process and transform different frequency components in different ways.
+This capability allows rich and flexible audio manipulations.
+As usual, pitch scaling is possible exploiting the duality principle between time and frequency.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{STFT transformation.png}
+    \caption{STFT-based time stretch}
+\end{figure}
+
+This approach introduces some issues: while we are used to think in terms of frequencies, the STFT domain works in both \textbf{magnitude} and \textbf{phase}.
+The phase is computed with $2\pi$ periodicity, but accurate reconstruction of the signal requires recovering absolute phase values in order to preserve continuity across time frames.
+This introduces challenges in achieving natural-sounding results, especially when the phase information is not accurately estimated or propagated during transformations.
+
+While normally the STFT is typically computed at uniformly spaced time instants, for time and pitch scaling operations it is often more convenient to use \textbf{regularly spaced synthesis time instants} instead.
+
+\clearpage
+
+We remind the definition of STFT of a signal $x(n)$:
+
+\[
+X(t^u_a, \Omega_k) = \sum_n h(n) \ x(t^u_a + n) \ e^{-j \Omega_k n}, \qquad \Omega_k = \frac{2k\pi}{N}
+\]
+
+Given a sequence of FFTs, in general, it is not guaranteed that there exists a signal $y(n)$ whose STFT exactly matches the given sequence. Nevertheless, an approximate inverse can be obtained using the following:
+
+\[
+y(n) = \sum_u w(n - t^u_s) \frac{1}{N} \sum_{k=0}^{N-1} Y(t^u_s, \Omega_k) \ e^{j \Omega_k (n - t^u_s)}
+\]
+
+The STFT can be reversed, allowing \textbf{perfect reconstruction} (i.e. $ y(n) = x(n) $) under two conditions:
+
+\[
+t^u_a = t^u_s, \qquad \sum_u w(n - t^u_a) \ h(t^u_a - n) = 1 \qquad \Rightarrow \qquad Y(t^u_s, \Omega_k) = X(t^u_a, \Omega_k)
+\]
+
+\subsubsection{STFT-based approach}
+
+In the \textbf{analysis} step, we compute the STFT of the signal $x(t)$, getting the spectrum of a given frame by means of magnitude and frequency (thanks to the phase).
+In the \textbf{scaling} stage, we warp the time axis and adapt magnitude and frequency values accordingly.
+Then, we compute new phase values by integrating the frequencies on the warped time axis, which requires prior phase unwrapping.
+In the \textbf{synthesis} stage, we reconstruct the scaled signal $y(t)$ using the inverse STFT of the sequence of FFTs.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{Non-parametric methods.png}
+    \caption{STFT-based time scaling block diagram}
+\end{figure}
+
+A critical challenge in the scaling step is the occurrence of \textbf{phase discontinuities} between reconstructed synthesis frames:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{Phase jump.png}
+    \caption{Phase discontinuity in STFT-based elaborations}
+\end{figure}
+
+In order to build a correct synthesis STFT we need various assumptions.
+
+\subsubsection{STFT-based algorithm}
+
+Let us start defining the \textbf{sinusoidal model} to describe the input signal $x(n)$:
+
+\[
+x(t) = \sum_{i=1}^{I(t)} A_i(t)\ e^{j\phi_i(t)}, \qquad \phi_i(t) = \int_{-\infty}^{t} \omega_i(\tau)\ d\tau
+\]
+
+The terms $A_i(t)$ and $\omega_i(t)$ describe respectively the time-varying amplitude and the instantaneous frequency of the $i$-th sinusoidal component.
+Using this definition in the STFT expression:
+\[
+X(t_a^u, \Omega_k) = \sum_{n=-\infty}^{\infty} h(n) \ x(t_a^u + n) \ e^{-j\Omega_k n} \quad \Rightarrow \quad
+X(t_a^u, \Omega_k) = \sum_{n=-\infty}^{\infty} h(n) \left( \sum_{i=1}^{I(t_a^u + n)} A_i(t_a^u + n) \ e^{j\phi_i(t_a^u + n)} \right) e^{-j\Omega_k n}
+\]
+
+The first \textbf{assumption} is to consider the \textbf{signal locally stationary}: over short time windows, the parameters of the sinusoidal model remain approximately constant.
+The phase $\phi$ changes linearly with time and both number $I$ and amplitude $A$ of the sinusoids does not change within the window:
+
+\[
+\phi_i(t_a^u + n) = \phi_i(t_a^u) + n \ \omega_i(t_a^u), \qquad I(t_a^u + n) = I(t_a^u), \qquad A_i(t_a^u + n) = A_i(t_a^u)
+\]
+
+The STFT expression becomes (analysis window Fourier transform $H(\Omega)$):
+
+\[
+X(t_a^u, \Omega_k) = \sum_{n=-\infty}^{\infty} h(n) \ x(t_a^u + n) \ e^{-j\Omega_k n} \quad \Rightarrow \quad
+X(t_a^u, \Omega_k) = \sum_{i=1}^{I(t_a^u)} A_i(t_a^u) \ e^{j\phi_i(t_a^u)} H \left(\Omega_k - \omega_i(t_a^u)\right)
+\]
+
+\begin{proof}
+\[
+X(t_a^u, \Omega_k) = \sum_n h(n) \sum_{i=1}^{I(t_a^u)} A_i(t_a^u + n) \ e^{j \phi_i \left(t_a^u + n\right)} e^{-j \Omega_k n}
+\]
+
+\[
+= \sum_n h(n) \sum_{i=1}^{I(t_a^u)} A_i(t_a^u) \ e^{j \left(\phi_i(t_a^u) + n\omega_i(t_a^u) \right)} e^{-j \Omega_k n} \qquad \text{(stationary conditions)}
+\]
+
+\[
+= \sum_n h(n) \sum_{i=1}^{I(t_a^u)} A_i(t_a^u) \ e^{j\phi_i(t_a^u)} \ e^{j n \omega_i(t_a^u)} \ e^{-j \Omega_k n}
+= \sum_n h(n) \sum_{i=1}^{I(t_a^u)} A_i(t_a^u) \ e^{j\phi_i(t_a^u)} \ e^{-j n (\Omega_k - \omega_i(t_a^u))}
+\]
+
+\[
+= \sum_{i=1}^{I(t_a^u)} A_i(t_a^u) \ e^{j\phi_i(t_a^u)} \sum_n h(n) \ e^{-j n \left(\Omega_k - \omega_i(t_a^u)\right)}
+= \sum_{i=1}^{I(t_a^u)} A_i(t_a^u) \ e^{j\phi_i(t_a^u)} H \left(\Omega_k - \omega_i(t_a^u)\right)
+\]
+\end{proof}
+
+The second \textbf{assumption} is to consider the windowing function $h(n)$ \textbf{real and symmetric} about $n=0$, which make its Fourier transform $H(\Omega)$ also real and symmetric.
+We want to select the \textbf{cutoff frequency} $\omega_h$ of $h(n)$ to be smaller than half the spacing between two successive sinusoids: this guarantees that for each frequency bin a single sinusoidal component exists.
+Under these assumptions, we can replace the sinusoid index $i$ with the frequency channel index $k$:
+
+\[
+X(t_a^u, \Omega_k) = 
+\left\{
+\begin{array}{lc}
+    A_k(t) \ e^{j\phi_k(t)} H(\Omega_k - \omega_k(t)), & \abs{\Omega_k - \omega_k(t)} \leq \omega_h \\
+    0, & \text{otherwise}
+\end{array}
+\right.
+\]
+
+This result shows that the STFT provides access to the instantaneous amplitude $A_k$ and phase $\phi_k$ of the sinusoid that falls into the $k$-th Fourier channel.
+
+\subsubsection{Phase unwrapping}
+
+The phase term obtained from the STFT presents $2\pi$ periodicity (i.e. wrapped), as the FFT returns the complex exponential $e^{j\phi_k}$: we have to reconstruct the actual phase trajectory (i.e. unwrapping) to obtain instantaneous frequencies $\omega_k$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Phase unwrapping.png}
+    \caption{Phase unwrapping}
+\end{figure}
+
+Given two successive analysis instants $t_a^{u-1}$ and $t_a^u$, we want to evaluate the difference $\Delta \phi$ of the unwrapped phases, having access only to the difference $\Delta \phi_w$ of the wrapped phases:
+
+\[
+\Delta \phi = \phi_2 - \phi_1, \qquad \Delta \phi_w = \phi_k(t_a^u) - \phi_k(t_a^{u-1})
+\]
+
+The passage between wrapped to unwrapped phases is possible knowing the number $m$ of wrappings:
+
+\[
+\Delta \phi = \Delta \phi_w + m \cdot 2\pi
+\]
+
+Assuming $\omega_k$ is constant within the window, we can estimate the instantaneous frequency from its derivative definition:
+
+\[
+\omega(t) = \frac{d}{dt} \phi(t) \quad \Rightarrow \quad \omega_k (t_a^u) = \frac{\Delta \phi}{\underbrace{t_a^u - t_a^{u-1}}_R} = \frac{\Delta \phi_w + m \cdot 2\pi}{R}
+\]
+
+We usually do not know the number $m$ of wrappings occurring in one window interval $R$.
+As the sinusoid is assumed to fall within the $k$-th Fourier channel, the frequency $\omega_k(t_a^u)$ must lie within the frequency band associated with that bin:
+
+\[
+\abs{\left( \omega_k(t_a^u) - \Omega_k \right) R} = \abs{\Delta\phi_w + m \cdot 2\pi - \Omega_k R} \leq \omega_h R
+\]
+
+The third \textbf{assumption} is to select the parameters in order to have the following \textbf{condition}:
+
+\[
+\omega_h R < \pi \quad \Rightarrow \quad \abs{\Delta\phi_w + m \cdot 2\pi - \Omega_k R} < \pi
+\]
+
+This inequality admits a unique integer $m$ solution. This ensures the unwrapped phase is well-defined.
+Once $m$ is found, we can evaluate the instantaneous frequency $\omega_k(t_a^u  )$ obtained before.
+
+The next question is: \textit{how do we guarantee the condition introduced by the third assumption?}
+
+The cutoff frequency $\omega_h$ of the analysis window is approximated as half the width of its mainlobe (second assumption) so, knowing the window factor $L$, its length $N$ and the sampling period $T_s$:
+
+\[
+\cancel{2} \omega_h = L \frac{\cancel{2} \pi}{N T_s} \quad \Rightarrow \quad
+\omega_h R = L \frac{\cancel{\pi}}{T_s N} R < \cancel{\pi} \quad \Rightarrow \quad
+\frac{R}{T_s} < \frac{N}{L}
+\]
+
+The smoother the window (i.e. narrow mainlobe), the more overlap is required to satisfy this constraint.
+
+\subsubsection{Summary}
+
+We define synthesis time instants at a regular interval $R_s$ and we evaluate the analysis instants $t_a^u$ and the analysis interval $R$ applying a time-warping function $T$ to the synthesis parameters:
+
+\[
+t_s^u - t_s^{u-1} = R_s, \qquad
+t_a^u = T^{-1}(t_s^u), \qquad
+R = T^{-1}(R_s)
+\]
+
+The STFT of the time-scaled signal is derived from that of the original signal using the original definition of time scaling:
+
+\[
+y(t') = \sum_{i=1}^{I \left(T^{-1}(t')\right)} A_i \left(T^{-1}(t')\right) \ e^{j \phi_i(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \omega_i \left(T^{-1}(\tau) \right) \ d\tau
+\]
+
+The integral in the phase term is computed numerically using the trapezoidal rule.
+
+In the STFT domain, the output corresponding to the synthesis instant $t_s^u$ and channel frequency $\Omega_k$ is reconstructed by taking the magnitude of the original STFT (at the mapped analysis time) and adding a phase term $\hat{\phi}_k$:
+
+\[
+Y(t_s^u, \Omega_k) = \abs{X(T^{-1}(t_s^u), \Omega_k)} \cdot e^{j \hat{\phi}_k(t_s^u)}
+\]
+
+The phase $\hat{\phi}_k(t_s^u)$ is updated by integrating the instantaneous frequency over the time interval between two synthesis instants. Assuming the instantaneous frequency remains constant over the window, this becomes:
+
+\[
+\underbrace{\omega_k(T^{-1}(t_s^u))}_{\omega(t)} = \underbrace{\frac{\hat{\phi}_k(t_s^u) - \hat{\phi}_k(t_s^{u-1})}{t_s^u - t_s^{u-1}}}_{\frac{d \phi(t)}{dt}} \quad \Rightarrow \quad
+\hat{\phi}_k(t_s^u) = \hat{\phi}_k(t_s^{u-1}) + (t_s^u - t_s^{u-1}) \omega_k(T^{-1}(t_s^u))
+\]
+
+The term $\omega_k(T^{-1}(t_s^u))$ is the instantaneous frequency computed in channel $k$, evaluated at the analysis time corresponding to $t_s^u$, after phase unwrapping.
+This frequency is assumed to be approximately constant over the analysis window duration.
+
+The magnitude of the modified STFT in a given channel at time $t_s^u$ is taken to be equal to the magnitude of the original STFT evaluated at the time $t_u^a = T^{-1}(t_s^u)$.
+The phase is constructed so that the instantaneous frequency of any sinusoidal component in the modified signal at time $t_s^u$ remains consistent with the one in the original signal at time $T^{-1}(t_s^u)$.
+The phase of the sinusoidal evolves freely and only its derivative with respect to time is controlled.
+Once the modified STFT $Y(t_s^u, \Omega_k)$ is computed, it is used to reconstruct the time-scaled signal through inverse transformation and OLA:
+
+\[
+y(n) = \sum_{u = -\infty}^{\infty} w(n - t_s^u) \frac{1}{N} \sum_{k = 0}^{N-1} Y(t_s^u, \Omega_k) \ e^{j \Omega_k (n - t_s^u)}
+\]
+
+The algorithm steps are the following:
+
+\begin{enumerate}
+    \item Set the initial instantaneous phases:
+    \[
+        \hat{\phi}_k(0, \Omega_k) = \angle X(0, \Omega_k)
+    \]
+
+    \item Set the next synthesis and analysis instants:
+    \[
+        t_s^{u+1} = t_s^u + R, \qquad t_a^{u+1} = T^{-1}(t_s^{u+1})
+    \]
+
+    \item Compute the instantaneous frequency in each channel at time $t_a^{u+1}$ as:
+    \[
+        \omega_k(t_a^{u+1}) = \Omega_k + \frac{1}{R(u)}\left( \Delta\phi - \Omega_k R(u) - 2m\pi \right)
+    \]
+
+    \item Compute the instantaneous phase using:
+    \[
+        \hat{\phi}_k(t_s^u) = \hat{\phi}_k(t_s^{u-1}) + (t_s^u - t_s^{u-1}) \omega_k\left(T^{-1}(t_s^u)\right)
+    \]
+
+    \item Reconstruct the time-scaled STFT using:
+    \[
+        Y(t_s^u, \Omega_k) = \abs{X\left(T^{-1}(t_s^u), \Omega_k\right)} e^{j \hat{\phi}_k(t_s^u)}
+    \]
+
+    \item Compute the $u+1$ term of the output:
+    \[
+        y(n) = \sum_{u = -\infty}^{\infty} w(n - t_s^u) \frac{1}{N} \sum_{k = 0}^{N-1} Y(t_s^u, \Omega_k) e^{j \Omega_k (n - t_s^u)}
+    \]
+
+    \item Update the iteration index: $u \gets u + 1$
+
+    \item Go back to step 2
+\end{enumerate}
+
+To implement pitch scaling, we exploit the duality theorem:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{STFT_based duality.png}
+    \caption{Duality principle for STFT-based methods}
+\end{figure}
+
+The time warping function $T$ and the pitch scaling factor $\alpha$ are related by the following:
+
+\[
+\alpha(t) = \frac{dT}{dt}
+\]
+
+After the time scaling, we resample (i.e. time warping) using the inverse mapping $T^{-1}$:
+
+\[
+x'(t') = x \left( T^{-1}(t') \right)
+\]
+
+\clearpage

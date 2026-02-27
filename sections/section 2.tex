@@ -1,0 +1,483 @@
+\section{Frequency-domain Filtering: Overlap and Add (OLA)}
+
+\subsection{Introduction}
+
+Different audio applications require FIR filtering where the number of samples (or the need to operate \textbf{real-time}) makes it impossible to approach the elaborations as usual, which is to make  the convolution between input and IR samples.
+We present a strategy to handle \textbf{large signals} by means of dividing them into segments, filtering them individually and putting everything back together appropriately.
+
+\subsection{FIR filtering in time domain}
+
+The output signal $y$ of a \textbf{Finite Impulse Response} (FIR) $h$ with input signal $x$ is given by linear convolution:
+
+\[ y(n) = \sum_{i=0}^{N} h(i) \ x(n - i), \qquad \texttt{y = conv(x,h);}\]
+
+Let us consider the implementation of FIRs in audio.
+We want the IR short enough to design real-time applications: the integration time of the hearing system is around 10 ms (below 500 Hz), and if we consider sampling rate of 50 KHz we have $N=500$ samples.
+So, it is common to have \textbf{hundreds of taps} (samples) in the filter IR.
+
+The time duration of the filter (around 10 ms) is short enough that we only need the magnitude frequency response to describe the filter.
+Therefore, the \textbf{complexity} of the \textbf{direct linear convolution} is $\mathcal{O}(N^2)$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Time filtering.png}
+    \caption{Discrete implementation of FIR filtering}
+\end{figure}
+
+\subsection{FIR filtering in frequency domain}
+
+In order to reduce the complexity (and so the computational cost), we recall from the \textbf{convolution theorem}:
+
+\[ y(n) = x(n) \circledast h(n) = \sum_{m=0}^{N-1} x(m) h(n-m)_N \quad \overset{\mathcal{F}}{\longrightarrow} \quad Y(k) = X(k) H(k) \]
+
+The symbol $\circledast$ indicates \textbf{cyclic convolution}, in which the indexing wraps around at the beginning due to the mod $N$ operation: this phenomenon makes $h(n)$ replicating outside its support (where it should be), so the convolution result is different from the classic convolution.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ccc}
+        \toprule
+        $N$ & Frequency-domain & Time-domain \\[3pt]
+        [samples] & convolution [operations] & convolution [operations] \\
+        \midrule
+        4 & 176 & 16 \\
+        % \hline
+        32 & 2560 & 1024 \\
+        % \hline
+        64 & 5888 & 4096 \\
+        % \hline
+        128 & 13312 & 16384 \\
+        % \hline
+        256 & 29696 & 65536 \\
+        % \hline
+        2048 & 311296 & 4194304 \\
+        \bottomrule
+    \end{tabular}
+    \caption{Comparison of computational costs for FIR filtering}
+\end{table}
+
+We can implement the \textbf{FIR filtering in the frequency domain} by making the FFT of both $x$ and $h$, computing the products $X(k) H(k)$ and going back in time through the IFFT of $Y$: both direct and inverse transformations have each complexity $\mathcal{O}(N \log N)$, while the product between the frequency transforms has complexity $\mathcal{O}(N)$.
+Therefore, the \textbf{total complexity} is $\mathcal{O}(N \log N)$.
+
+\subsection{Acyclic convolution for FIR filtering}
+
+The convolution theorem involves the cyclic convolution ($\circledast$), but we want to implement the acyclic convolution ($*$), which have different definitions:
+
+\[ x(n) \circledast h(n) = \sum_{m=0}^{N-1} x(m) h(n-m)_N, \qquad x(n) * h(n) = \sum_{m=0}^{\infty} x(m) h(n-m) \]
+
+We can implement the acyclic convolution by adding some zero samples at the end of both $x$ and $h$ (\textbf{zero-padding}), so that we extend the range of the summation without changing the actual result and avoiding the wrap-up of the cyclic convolution.
+We need to understand how many zeros to append:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Acyclic convolution.png}
+    \caption{Number of samples (support) for $x(n)$ (left), for $h(n)$ (center) and for the output (right) }
+\end{figure}
+
+The \textbf{output duration} is $N_y = N_x + N_h + 1$ samples, so we need to add enough zeros to $x$ and $h$ so that the support for both input and impulse response is $N \geq N_y$.
+Whenever $N$ is not great enough, the signal samples (convolution terms) wrap around at the beginning due to mod $N$ operation of the cyclic convolution, resulting in \textbf{time-domain aliasing}.
+
+Similarly to what happens in zero-padding for sound analysis, the more samples we add in time results in more samples we have in frequency (and so closer spacing between the samples of the spectra, increasing the \textbf{frequency accuracy}).
+Intuitively, it is like having a high sampling rate in frequency that makes the spectra even more precise.
+
+In conclusion, to fully exploit the FFT efficiency, we can choose $N$ (final signal length after padding) as a \textbf{power of 2}.
+
+\subsubsection{Example 1}
+
+Let us implement a low-pass filter at $f_\text{cut}=600$ Hz, with IR length $L=257$ taps and signal frame length $M=512$ samples.
+We define the filter impulse response $h(n)$ as a truncated sinc function (we apply Hamming windowing on the IR to reduce ringing effects):
+
+\[ h(n) = 2B \sinc (2\pi Bn) = \cancel{2B} \frac{\sin (2\pi Bn)}{\cancel{2}\pi \cancel{B}n} = \frac{\sin (2\pi Bn)}{\pi n}, \quad B = \frac{f_c}{F_s} \ \text{filter bandwidth (normalized)} \]
+
+\begin{multicols}{2}  
+\begin{verbatim}
+% *** signal parameters
+Fs = 4000;
+f = [ 440 880 1000 2000 ]; % frequencies
+M = 512; % signal length
+
+% *** generate a signal by adding up sinusoids
+x = zeros(1,M);
+n = 0:(M-1);
+
+for k = 1:length(f);
+    x = x + sin(2*pi*n*f(k)/Fs);
+end
+
+% *** filter parameters
+L = 257; % filter length
+fc = 600; % cutoff frequency
+
+% *** design the filter using the window method
+epsilon = .0001; nfilt = (-(L-1)/2:(L-1)/2) + epsilon;
+hideal = sin(2*pi*fc*nfilt/Fs) ./ (pi*nfilt);
+h = hamming(L)'.* hideal;
+\end{verbatim}
+\end{multicols}
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{ex1.png}
+    \end{minipage}
+    \hspace{0.4cm}
+    \begin{minipage}{0.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{lowpass filter.png}
+    \end{minipage}
+    \caption{Signal $x(n)$ (left), low-pass filter IR (top) and frequency response (bottom)}
+\end{figure}
+
+The frequency-domain convolution becomes:
+
+\begin{multicols}{2}
+\begin{verbatim}
+% *** choose the next power of 2 greater than L+M-1
+Nfft = 2^(ceil(log2( L + M -1)));
+
+% Transform the signal and the filter and zero pad
+S = fft(sigzp,Nfft);
+H = fft(hzp,Nfft);
+
+% perform frequency domain multiplication...
+Sfilt = S.*H;
+
+% ...and obtain the filtered signal through ifft
+sfilt = ifft(Sfilt);
+\end{verbatim}
+\end{multicols}
+
+The output of the LPF is a 440 Hz sinusoid, as we cut the higher components (at 880, 1000 and 2000 Hz):
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{lpf output.png}
+    \caption{Low-pass effect on the signal spectrum (top) and resulting signal in time (bottom)}
+\end{figure}
+
+\subsubsection{Example 2}
+
+Let us see what happens when the zero-padding process is not implemented correctly, adding not enough zeros (time-domain aliasing).
+The exercise is the very same of the previous example, but we study how the $N$ value actually changes the results.
+
+We define the filter length $L=65$ samples, signal frame length $M=100$ samples, signal $x(n)$ given by two impulses $\delta$:
+
+\begin{multicols}{2}
+\begin{verbatim}
+M = 100; % signal length
+L = 65; % filter length
+
+% define the signal
+x = zeros(M,1); x(10) = 1; x(86) = 1;
+
+% define the filter
+h = fir1(L-1,0.5).';
+
+% zero padding
+N = 100; % try also N = 116, N = 132,
+                    N = 164, N = 256
+x0 = [x; zeros(N-M,1)];
+h0 = [h; zeros(N-L,1)];
+X0 = fft(x0); H0 = fft(h0);
+y0 = ifft(X0.*H0);
+\end{verbatim}
+\end{multicols}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{ex 2.png}
+    \caption{Signal (left) and filter time samples (right)}
+\end{figure}
+
+Let us notice that, for some $N$ values, the time-domain aliasing occurs:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Timedomain aliasing.png}
+    \caption{Effect of $N$ and time-domain aliasing (second impulse wrapping around)}
+\end{figure}
+
+\subsection{Indefinite length signals}
+
+Up to now, we considered time-fixed durations for $x(n)$, where a single FFT occurs.
+In some cases it is \textbf{not practical} to implement the \textbf{convolution} with a \textbf{single FFT}: for example, when $N_x$ is extremely large, or when the filtering operation is real-time.
+So, it becomes necessary to extract a smaller portion of $x(n)$, considering that $h(n)$ has $N_h$ samples.
+An efficient approach is to store $N_h-1$ samples of the signal into a \textbf{circular buffer}, where rotating indexes allows to avoid any memory copying:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Circular buffer.png}
+    \caption{Circular buffer for FIR filtering ($N_h=4$)}
+\end{figure}
+
+\subsection{Overlap and Add (OLA)}
+
+Direct filtering may result time-consuming, in particular when $N_h$ is large.
+The solution is to implement the \textbf{Overlap and Add (OLA)} technique: we extract different frames from the signal (using a zero-phase window $w(n)$ of length $M$), we process each frame singularly, then we put all resulting frames together.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{Signal windowing.png}
+    \caption{Original signal and three frames extraction}
+\end{figure}
+
+The \textbf{frame extraction} is expressed as (frame index $m$, hop-size $R$):
+
+\[ x_m(n) = x(n) \ w(n-mR), \qquad n \in (-\infty, +\infty) \]
+
+In order to be able to reconstruct the original signal from the overlapping frames, we need to define a condition on the window, called \textbf{Constant Overlap-and-Add (COLA)}:
+
+\[ x(n) = \sum_{m=-\infty}^{+\infty} x_m(n) = \sum_{m=-\infty}^{+\infty} x(n) \ w(n-mR) = x(n) \sum_{m=-\infty}^{+\infty} w(n-mR) \quad \Rightarrow \quad \underbrace{\sum_{m=-\infty}^{+\infty} w(n-mR)=1}_{\text{COLA}} \]
+
+The idea is that all window's copies (shifted by $R$ samples from one another), when summed together, give a constant profile:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{COLA.png}
+    \caption{COLA condition - triangular window with 50\% overlap}
+\end{figure}
+
+All windows $w(n)$ and hop-sizes $R$ that satisfy the COLA condition will result into \textbf{perfect reconstruction}.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{cc}
+        \toprule
+        Window type & Hop-size \\
+        \midrule
+        Rectangular & 0\% ($R=M$) \\
+        % \hline
+        Rectangular & 50\% ($R=M/2$) \\
+        % \hline
+        Bartlett & 50\% ($R=M/2$) \\
+        % \hline
+        Hamming & 25\% ($R=M/4$) \\
+        % \hline
+        Hamming & 50\% ($R=M/2$) \\
+        % \hline
+        Any & $R=1$ sample (sliding FFT) \\
+        \bottomrule
+    \end{tabular}
+    \caption{Windows and hop-size that satisfy the COLA condition}
+\end{table}
+
+The \textbf{output signal} $y(n)$ of the filter, in terms of frames $x_m(n)$, is expressed as:
+
+\[ y(n) = x(n) * h(n) = \sum_{m=-\infty}^{+\infty} x_m(n) * h(n), \quad -\infty < n < +\infty \]
+
+The \textbf{output DTFT} $Y(\omega)$ is:
+
+\[ Y(\omega) = \sum_{n=-\infty}^{+\infty} y(n) \ e^{-j\omega n} = \sum_{n=-\infty}^{+\infty} \left[ \sum_{m=-\infty}^{+\infty} x_m(n) * h(n) \right] e^{-j\omega n} = \sum_{m=-\infty}^{+\infty} \left[ \sum_{n=-\infty}^{+\infty} x_m(n) * h(n) \right] e^{-j\omega n} = \]
+
+\[ = \sum_{m=-\infty}^{+\infty} X_m(\omega) \ H(\omega) = \sum_{m=-\infty}^{+\infty} Y_m(\omega), \qquad \omega \in [0,2\pi] \]
+
+The filter $h(n)$, the window $w(n)$ and the frames $x_m(n)$ have \textbf{finite support}:
+
+\[ \left\{ \begin{array}{ccc}
+    h(n) \neq 0 & \text{for} \ n \in [0,N_h-1] & \text{support: } N_h \\[3pt]
+    w(n) \neq 0 & \text{for} \ n \in [0,M-1] & \text{support: } M \\[3pt]
+    x_m(n) \neq 0 & \text{for} \ n \in [mR,mR+M-1] & \text{support: } M
+\end{array} \right. \]
+
+The convolution term $y_m(n)$ has support equal to $N_h+M-1$:
+
+\[ y_m(n) = x_m(n) * h(n) \qquad \neq 0 \qquad \text{for} \ n \in [mR,mR+N_h+M-2], \qquad\text{support: } L=N_h+M-1 \]
+
+For convenience, let's define a notation for the frame $x_m(n)$ shifted to the time origin:
+
+\[ \tilde{x}_m(n) = x_m(n+mR) \quad \Rightarrow \quad \tilde{y}_m(n) = \tilde{x}_m(n) * h(n) = y_m(n+mR) \]
+
+The shifted convolution term $\tilde{y}_m(n)$ has support $L=N_h+M-1$, and being time-limited, its DTFT $\tilde{Y}_m(\omega)$ can be critically sampled at frequencies $\omega_k$:
+
+\[ \omega_k = \frac{2k\pi}{L}, \qquad k = 0,1,2, \cdots, L-1 \]
+
+The DTFT at those frequencies $\tilde{Y}_m(\omega_k)$ is the $L$-DFT of $\tilde{y}_m(n)$ (which has indeed support of $L$).
+
+Let us remind DTFT and DFT definitions of $\tilde{y}_m(n)$ (DTFT is the theoretical definition that works for infinite sequences, while DFT is the only frequency representation for finite sequences):
+
+\[ \tilde{Y}_m(\omega) = \sum_{n=-\infty}^{+\infty} \tilde{y}_m(n) \ e^{-j \omega n} = \sum_{n=0}^{L-1} \tilde{y}_m(n) \ e^{-j \omega n}, \qquad \tilde{Y}_m(k) = \sum_{n=0}^{L-1} \tilde{y}_m(n) \ e^{-j \frac{2\pi k}{L} n} = \tilde{Y}_m(\omega = \omega_k) \]
+
+Therefore, the frequency transform of the convolution term is the result of a product in frequency:
+
+\[ \tilde{Y}_m(\omega_k) = \tilde{X}_m(\omega_k) \ H(\omega_k) \]
+
+So, we can implement the convolution theorem by sampling the DTFTs in the frequency points $\omega_k$, obtaining DFTs that can be numerically computed.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Frame dft.png}
+    \caption{Frame and IR visualization for OLA with zero-padding}
+\end{figure}
+
+As usual, we zero-pad the extracted frame $\tilde{x}_m(n)$ and the impulse response $h(n)$, reaching $L$ samples as a power of 2.
+In the frequency domain, we obtain $L$ samples of $\tilde{Y}_m$, then we compute the IDFT to have the frame time output $\tilde{y}_m$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{DFT vector.png}
+    \includegraphics[width=0.75\linewidth]{IDFT vector.png}
+    \caption{DFT (top) and IDFT samples (bottom)}
+\end{figure}
+
+We implement this series of operations for all frames.
+The entire processing is expressed as:
+
+\[ y(n) = \sum_{m=-\infty}^{+\infty} y_m(n) = \sum_{m=-\infty}^{+\infty} \text{SHIFT}_{mR}\{\tilde{y}_m(n)\} = \sum_{m=-\infty}^{+\infty} \text{SHIFT}_{mR}\{\tilde{x}_m(n)*h(n)\} = \]
+
+\[ = \sum_{m=-\infty}^{+\infty} \text{SHIFT}_{mR}\left\{ \text{IFFT} \left[ \text{FFT}(\tilde{x}_m(n)) \otimes \text{FFT}(h(n)) \right]_{(n-mR)} \right\} \]
+
+All of this works whenever both COLA and time anti-aliasing conditions are satisfied.
+We remind that time-aliasing occurs whenever the zero-padding operation is not implemented correctly.
+
+\clearpage
+
+\subsubsection{Examples 3}
+
+Let us low-pass a train of impulses: the filter length is $N_h=32$ samples, the OLA window is a Hanning with length $M=32$ samples and hop-size 50\% ($R=M/2=16$ samples).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{ex3 signals.png}
+    \caption{Signal (left) and impulse response (right)}
+\end{figure}
+
+The entire implementation is:
+
+\begin{multicols}{2}
+\begin{verbatim}
+% define the input signal
+L = 10000; % tot signal length
+x = zeros(1,L);
+x(1:25:L) = 1;
+
+% design the filter
+Nh = 33; % filter length
+h = fir1(Nh-1,0.5); % low pass filter
+
+% design the analysis window
+M = 33; % window length
+w = hanning(M)'; % hanning window
+R = (M-1)/2+1; % hop size
+
+% compute the best value for the length of fft:
+% Nfft >= M + Nh - 1, and Nfft is pow. of 2
+Nfft = 2^(ceil(log2( M + Nh - 1)));
+
+% compute the FFT of the filter
+H = fft(h,Nfft);
+
+% allocate the space for output signal
+y = zeros(1,L+Nh-1);
+
+% number of frames to be processed
+nframes = floor( (L-M)/R ); % number of frames
+
+% OLA algorithm
+for m = 1:nframes
+    % extract the m-th frame and apply the window
+    m_idxs = (m-1)*R+1 : (m-1)*R+M;
+    xm = x(m_idxs) .* w;
+    
+    % compute the FFT
+    Xm = fft(xm,Nfft);
+    
+    % compute the convolution in freq. domain
+    Ym = Xm.*H;
+    
+    % come back to time domain
+    ym = real(ifft(Ym));
+    
+    % extract only non-zero entries
+    ym = ym(1:M+Nh-1);
+    
+    % overlap and add
+    ola_idxs = (m-1)*R+1 : (m-1)*R + (M+Nh-1);
+    y(ola_idxs) = y(ola_idxs) + ym;
+end
+\end{verbatim}
+\end{multicols}
+
+This is what happens for each frame:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{ola 1.png}
+    \includegraphics[width=0.3\linewidth]{ola 2.png}
+    \includegraphics[width=0.3\linewidth]{ola 3.png}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{ola 4.png}
+    \includegraphics[width=0.3\linewidth]{ola 5.png}
+    \includegraphics[width=0.3\linewidth]{ola 6.png}
+    \caption{FIR filtering result as contributions of six frames}
+\end{figure}
+
+\subsection{Applications}
+
+An example of application is real-time reverberation, like with VST plugins: \textbf{Room Impulse Responses} (RIR) are usually very long ($10^4$ samples at $F_s = 44100$ Hz correspond to around 230 ms), so direct convolution is not manageable.
+
+Another one is the implementation of a multichannel reproduction system (\textbf{wavefield synthesis}): different loudspeakers contribute to the sound wavefield in a certain area, so each speaker needs different filtering (in real-time elaboration, the IR may be long up to $400$ samples).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{reverb vst.png}
+    \includegraphics[width=0.3\linewidth]{multichannel.png}
+    \caption{Reverb VST plugin (left), multichannel reproduction system (right)}
+\end{figure}
+
+\subsection{OLA and STFT}
+
+Considering that we want to implement the DTFT on time frames, we may think about the STFT of a signal: it is a time-frequency representation where the signal time evolution is evaluated in different frames (upon which we compute the FFT).
+
+The frame $x_m(n)$ is defined in time, while its DTFT $X_m(\omega)$ is defined in frequency: the STFT is function of both time and frequency.
+The frame length $M$ defines time-frequency resolution of the data frame, while the FFT length $N$ defines time-frequency resolution of the spectral content:
+
+\[ N > M + N_h -1 \]
+
+The hop-size $R$ defines the temporal resolution and we remind that the frequency bins are equally spaced.
+
+The code for computing the STFT and plotting the \textbf{spectogram} is:
+
+\begin{multicols}{2}
+\begin{verbatim}
+% read the source file
+[x Fs] = audioread('guitar.wav');
+
+M = floor(0.050*Fs); %window length (50msec)
+R = floor(M/4); %hop size
+N = 2^(ceil(log2(M)));
+    %power of 2 larger than M
+w = hanning(M)'; %length M hanning window
+
+%number of frames
+Nframes = floor((length(x)-N)/R) + 1 ;
+
+% Compute the STFT
+STFT = zeros(Nframes , N/2);
+for m = 0 : Nframes
+    xm = x(m*R+1:m*R+M) ;
+    ym = w.*xm;
+    temp = abs ( fft(ym, N) ) ;
+    STFT(m+1,:) = temp (1:N/2) ;
+end
+STFT = fliplr(STFT)';
+
+% Plot the SpectroGram
+t = [ 0 : Nframes - 1]*R/Fs ;
+f = Fs * [ 0 :N/2 - 1 ] /N;
+imagesc(t,f,10*log10(abs(STFT).^2));
+xlabel('time (sec)');
+ylabel('frequency (Hz)');
+\end{verbatim}
+\end{multicols}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.41\linewidth]{flute spectrum.png}
+    \includegraphics[width=0.42\linewidth]{guitar spectrum.png}
+    \caption{Spectograms: flute (left) and guitar (right)}
+\end{figure}
+
+\clearpage

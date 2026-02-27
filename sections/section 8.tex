@@ -1,0 +1,766 @@
+\section{Digital Audio Restoration: Restoration of Local Degradations}
+
+\subsection{Introduction}
+Historical recordings are often affected by defects of finite duration, which occur at random locations and only affect the signal in a localized manner.
+They are perceived in different ways. A common manifestation is the presence of tiny tick noises, which may occur in any recording medium, including modern digital sources.
+Another typical case is scratch and crackle noise, usually associated with analog disc recordings.
+
+For example, a poor-quality 78 rpm record might typically exhibit around 2000 clicks per second, with durations ranging from less than 20 $\mu$s up to 4 ms in extreme cases.
+Nevertheless, in most cases at least 90\% of the samples remain undegraded, so it is reasonable to hope that a convincing restoration can be achieved.
+
+The causes of such degradations are diverse. They may result from specks of dirt or dust adhering to the grooves of a disc, from the granularity of the material used for pressing, or from mechanical damage such as surface scratches.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Phonographs degradation causes.png}
+    \caption{Electron micrograph showing dust and damage to the grooves of a 78 rpm grammophone disc}
+\end{figure}
+
+Let us take as example a \textbf{click-degraded music waveform}.
+In the time domain, we find sharp impulsive peaks on the waveform, caused by the clicks.
+In the frequency domain, the sonogram reveals how these clicks manifest as vertical lines across the time-frequency representation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Click degredation.png}
+    \caption{Click-degraded music waveform from a 78 rpm recording: time-domain waveform (left) and time-frequency sonogram (right)}
+\end{figure}
+
+\subsection{Modelling clicks}
+A defect in an audio signal may manifest itself either by adding unwanted noise to the signal, or by replacing the original waveform for a short duration of time, defining two conceptual models.
+The \textbf{additive model} is generally acceptable for most surface defects in recording media, including small scratches, dust or dirt.
+The \textbf{replacement model} is more appropriate for severe degradations such as very large scratches or breakages, which completely obliterate the underlying signal information.
+Such cases often excite long-term resonances in mechanical playback systems and therefore need to be treated differently.
+
+Let us consider the additive model, having the underlying clean audio $s$, the corrupting noise process $v$ and an indicator function $i$:
+
+\[
+x(n) = s(n) + i(n)\ v(n),
+\qquad
+i(n) =
+\begin{cases}
+    1, & \text{when the degradation is present} \\
+    0, & \text{otherwise}
+\end{cases}
+\]
+
+Click degradations often appear as \textbf{contiguous bursts of corrupted samples}, which start at random positions and last for a random duration, typically between 1 and 200 samples at a sampling rate of 44.1 kHz.
+
+There is a \textbf{strong dependence} between successive samples of the \textbf{switching process} $i$, which implies that the noise cannot simply be assumed as impulsive.
+Treating \textbf{clusters of impulses} is significantly more difficult than dealing with isolated impulses.
+Furthermore, adjacent impulses may cancel each other in the detection space (leading to missed detections), or may add constructively (producing the impression of more impulses and thus leading to false detections).  
+
+The \textbf{amplitude} of the clicks is also very \textbf{variable}.
+On one hand, the largest click amplitudes can exceed the largest amplitudes of the underlying signal.
+On the other hand, the smallest audible defects may lie more than 40 dB below the local signal level.  
+
+Several \textbf{difficulties} arise in detection and restoration.
+Large-amplitude defects tend to bias parameter estimations and threshold determination procedures, which may result in smaller defects remaining undetected.
+Moreover, the choice of an \textbf{appropriate threshold} for detection schemes becomes a delicate and difficult problem in practice.
+
+\subsection{Approach to click restoration}
+In click restoration, two main tasks must be carried out.
+The first task is \textbf{detection}, which consists in estimating the switching process $i$.
+This step allows us to decide which samples of the audio signal are degraded and thus affected by impulsive noise.
+
+The second task is \textbf{signal estimation}, which aims to reconstruct the underlying audio data whenever corruption is present.
+In the absence of direct information about the true, uncorrupted signal, this reconstruction is typically achieved by exploiting the information contained in neighbouring uncorrupted samples.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Click restoration scheme.png}
+    \caption{Click restoration approach}
+\end{figure}
+
+The simplest approach to \textbf{detect clicks} is to magnify them with respect to the signal by applying a \textbf{high-pass filter}, then performing thresholding.
+This strategy is straightforward to implement and does not require any knowledge of the system parameters.
+
+However, the detection relies on the \textbf{assumption} that there is a clear \textbf{frequency separation} between the signal and the clicks, which is rarely the case in practice.
+Consequently, this method suffers when the signal itself has a strong high-frequency content, or when the clicks are band-limited.  
+This highlights the strong variability of click characteristics and the limitations of such a basic detection approach.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Click detection.png}
+    \caption{Simplest click detection approach}
+\end{figure}
+
+One possible approach to \textbf{estimate the click-degraded signal} is to use a \textbf{median filter}: the corrupted samples are replaced by values that are statistically likely, obtained from the median of their neighbouring samples.  
+This approach typically causes only a modest degradation of surrounding, uncorrupted samples.  
+However, it becomes unsuitable when the \textbf{gaps} caused by the degradation are larger than just a \textbf{few samples}, since the median filter is unable to reconstruct longer stretches of missing data.
+
+Another possible approach is to \textbf{splice uncorrupted data} from nearby regions into the gap.  
+This method can be effective but requires careful handling of discontinuities that may arise at the boundaries between the spliced and original signal.  
+In practice, splicing often makes use of techniques borrowed from time-scaling and pitch-scaling algorithms, such as SOLA or PSOLA.
+For this approach to work convincingly, it is important that the underlying signal is \textbf{periodic} (or at least quasi-periodic) and that the pitch period is estimated with sufficient accuracy.
+
+\subsubsection{Median filter for signal estimation}
+A median filter operates by scanning through the signal entry by entry, and replacing each value with the \textbf{median} of its neighbouring entries.  
+The median is defined as the middle value of the sorted entries within the chosen window.  
+To make this operation straightforward, the filter is usually applied with a sliding window of odd length, since this guarantees a well-defined central value.
+
+For example, let us consider the following signal:
+
+\[
+x = \{2, 80, 6, 3, 5, 4, \cdots\}
+\]
+
+We want to apply a median filter of length 3.  
+At the boundaries, the window is completed by repeating the nearest available entries.  
+The operation to obtain the median-filtered signal $y$ proceeds as follows:
+
+\[
+\left.
+\begin{array}{ccc}
+y(1) =& \mathrm{Median}\{2,2,80\} &= 2 \\
+y(2) =& \mathrm{Median}\{2,6,80\} &= 6 \\
+y(3) =& \mathrm{Median}\{80,6,3\} &= 6 \\
+y(4) =& \mathrm{Median}\{6,3,5\} &= 5 \\
+y(5) =& \mathrm{Median}\{3,5,4\} &= 4
+\end{array} \qquad
+\right\} \quad \Rightarrow \quad
+y = \{2, 6, 6, 5, 4, \cdots\}
+\]
+
+This simple example illustrates how the median filter suppresses outliers (such as the value $80$) while preserving the general structure of the surrounding signal.
+
+Strictly speaking, the median filter is \textbf{not a true filter} in the usual sense, because it is not a linear time-invariant (LTI) system.
+Its non-linearity arises from the \textbf{sorting operation} used to determine the median.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{Median filter.png}
+    \caption{Median filter}
+\end{figure}
+
+One of the main \textbf{advantages} of the median filter is that it \textbf{preserves step-like functions}.
+This property makes it particularly useful when dealing with signals or images containing sharp transitions (such as edges) where conventional linear filters would blur the details.
+Another important feature is its ability to \textbf{remove isolated errors} or outliers.
+For example, a filter of length $2N+1$ can eliminate anomalous sequences of up to $N$ samples by replacing them with values consistent with their neighbours.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{Median vs linear filter.png}
+    \caption{Comparison between linear and 5-median filters for different input signals}
+\end{figure}
+
+However, the method has \textbf{limitations}.
+Median filtering is suitable \textbf{only for very short bursts} of missing or corrupted data, typically spanning just a few samples.
+If the gaps become longer, the signal degradation becomes unacceptable and fine local details are quickly lost.
+This trade-off means that while the filter is excellent for impulsive noise removal, it is less effective when larger sections of data are corrupted.
+
+\subsection{General scheme for detection and estimation}
+\textbf{Blind approaches} to click detection and signal estimation are usually not very effective.  
+Instead, we need to rely on \textbf{model-based methods}, such as sinusoidal modelling, autoregressive (AR) modelling or periodic models.  
+
+In principle, the optimal solution would be to carry out joint detection and estimation.  
+However, this is a very challenging problem, because the two steps are not independent of each other.  
+One way to address this difficulty is through an iterative refinement approach.
+
+We decide to adopt an \textbf{autoregressive (AR) model} to represent the signal:
+
+\[
+s(n) = \sum_{k=1}^P a_k \ s(n-k) + e(n)
+\]
+
+The parameters $a_k$ are estimated from the available signal, while $e(n)$ is a residual error term.
+
+The iterative procedure works as follows: given the current indicator function $i(n)$, which specifies which samples are corrupted, we first estimate the AR parameters $a_k$.  
+These parameters are then used to improve the detection of $i(n)$.  
+If the newly obtained indicator function differs from the one of the previous iteration, the process is repeated.  
+Once the detection stabilizes, signal estimation is performed: using both $i(n)$ and $a_k$, the missing or corrupted samples are reconstructed from the model, thereby filling the gaps.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Detection estimation scheme.png}
+    \caption{General scheme for detection and estimation in click degradation problems}
+\end{figure}
+
+This scheme provides a structured way to alternate between parameter estimation, detection, and signal reconstruction, converging toward a more reliable restoration of the audio.
+
+\subsubsection{Click detection}
+We consider the audio data $s$ to be drawn from a short-term stationary AR process:
+
+\[
+s(n) = \sum_{k=1}^{P} a_k \ s(n-k) + e(n)
+\]
+
+For now, we assume that the AR model parameters $a_k$ and the excitation variance $\sigma_e^2$ are known.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Click detection block.png}
+    \caption{Click detection block}
+\end{figure}
+
+Applying the $\mathcal{Z}$-transform, the AR model becomes:
+
+\[
+s(n) = \sum_{k=1}^{P} a_k \ s(n-k) + e(n) 
+\quad \xrightarrow{\ \mathcal{Z}\ }\quad 
+S(z) = S(z)\sum_{k=1}^{P} a_k \ z^{-k} + E(z)
+\]
+
+From this, the \textbf{prediction error filter} $H$ is defined as:
+
+\[
+H(z) = \frac{E(z)}{S(z)} = 1 - \sum_{k=1}^{P} a_k \ z^{-k}
+\]
+
+If we feed the prediction error filter with the corrupted data $x$:
+
+\[
+e_d(n) = x(n) - \sum_{k=1}^P a_k \ x(n-k)
+= \left[s(n) + i(n)v(n)\right] - \sum_{k=1}^P a_k \left[s(n-k) + i(n-k) v(n-k)\right]
+\]
+
+\[
+= \underbrace{s(n) - \sum_{k=1}^P a_k \ s(n-k)}_{e(n)} + \underbrace{i(n) v(n) - \sum_{k=1}^P a_k \ i(n-k) v(n-k)}_{u \ast h \ (n)}
+\]
+
+We obtain an expression with $h$ the prediction error filter impulse response and $u(n)=i(n)v(n)$ the localized noise.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{Click detection 2.png}
+    \caption{Prediction error filter}
+\end{figure}
+
+The response of the prediction error filter to the corrupted signal is essentially the noise component $e$.  
+The filter suppresses the predictable part of the musical signal while leaving the unpredictable component $v$ almost unaffected.  
+
+We remind the definition of the AR process $s$:
+
+\[
+s(n) = \sum_{k=1}^P a_k \ s(n-k) + e(n)
+\]
+
+It is intuitive to think that the signal $s$ may be obtained from the error $e$ using the \textbf{inverse process} of the prediction filtering $H$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Click detection 3.png}
+    \caption{Inverse of the prediction error filter}
+\end{figure}
+
+This means that the variance $\sigma_e$ of the prediction error $e$ can be directly related to the variance $\sigma_s$ of the uncorrupted signal $s$.  
+Specifically, the power spectral density satisfies the following:
+
+\[
+P_s(e^{j\omega}) = P_e(e^{j\omega}) \abs{\frac{1}{H(e^{j\omega})}}^2
+\quad \Rightarrow \quad
+2\pi \sigma_s^2 = \int_{-\pi}^{\pi} P_e(e^{j\omega}) \abs{\frac{1}{H(e^{j\omega})}}^2 d\omega
+= \sigma_e^2 \int_{-\pi}^{\pi} \abs{\frac{1}{H(e^{j\omega})}}^2 d\omega
+\]
+
+The \textbf{variance} of the excitation (i.e. prediction error) is:
+
+\[
+\sigma_e^2 = \frac{2\pi \sigma_s^2}{\int_{-\pi}^{\pi} \abs{ \frac{1}{H(e^{j\omega})} }^2 d\omega}
+\]
+
+The variance expression we found can be used to quantify the reduction in the power of the audio signal.  
+For highly correlated audio, this reduction is significant, often reaching values of 40 dB or more.  
+
+We remind the prediction error $e_d$ expression:
+
+\[
+e_d(n) = e(n) + i(n)v(n) - \sum_{k=1}^P a_k \ i(n-k) v(n-k)
+\]
+
+This relation tells us that if a click occurs as a single impulse, it triggers the full impulse response of the prediction error filter, scaled by the magnitude of the impulse.  
+As a result, localized noise-like disturbances are strongly amplified when they are uncorrelated with the underlying signal.  
+This \textbf{amplification}, however, comes at the \textbf{cost of temporal localization}, since the effect of a single click extends across $P$ samples.
+
+Click detection is carried out by applying a \textbf{threshold} to the \textbf{prediction error} $e_d$.  
+The threshold is chosen based on the magnitude of the peaks and on the order of the prediction model, which introduces a trade-off between false positives and false negatives.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{Click detection thresholding.png}
+    \caption{Click detection: original signal (top) and absolute value of prediction error (bottom)}
+\end{figure}
+
+The procedure can be summarized by the following algorithm:  
+
+\begin{enumerate}
+    \item For $n = 1$ to $N$, compute the prediction error:
+    
+    \[
+    e(n) = x(n) - \sum_{i=1}^{P} a_i \ x(n-i)
+    \]
+
+    \item Set $i(n)$ accordingly:
+
+    \[
+    i(n) =
+    \begin{cases}
+        1, & \abs{e(n)} > k \ \sigma_e \\
+        0, & \abs{e(n)} \leq k \ \sigma_e
+    \end{cases}
+    \] 
+\end{enumerate}
+
+The parameter $k$ controls the balance between missed detections and false alarms, and its choice directly impacts the accuracy of the detection process.
+
+\subsubsection{Parameter estimation}
+We now turn our attention to the problem of modelling \textbf{parameter estimation}.  
+The estimation task is simplified by the fact that the model is \textbf{linear in the parameters}, which makes the computations more tractable.  
+Moreover, the AR model is assumed to be a valid representation of the signal dynamics.  
+Under this assumption, the \textbf{prediction error} (or innovation) behaves as a white process, meaning that the samples are \textbf{uncorrelated and identically distributed}.  
+In addition, we consider the prediction error to be \textbf{Gaussian}, which implies that uncorrelatedness is equivalent to independence.  
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Parameter estimation block.png}
+    \caption{Parameter estimation block}
+\end{figure}
+
+Let us consider a random process $x(n)$ generated by an order-$P$ autoregressive (AR) filter driven by a white noise innovation process $e(n)$.
+The AR model is the following:
+
+\[
+x(n) = \sum_{k=1}^{P} a_k \ x(n-k) + e(n)
+\quad \Rightarrow \quad
+e(n) = x(n) - \sum_{k=1}^{P} a_k \ x(n-k)
+\]
+
+We denote as $p_e(e(n))$ the Probability Density Function (PDF) of the innovation process.
+The probability of observing the next sample of the process given the previous $P$ samples is the following:
+
+\[
+P\left[x(n) \ \mid \ x(n-1),x(n-2),\cdots,x(n-P)\right] = p_e \left( \underbrace{x(n) - \sum_{k=1}^{P} a_k \ x(n-k)}_{e(n)} \right)
+\]
+
+Since the samples of $e(n)$ are assumed to be independent and identically distributed (i.i.d.), the joint probability of a sequence of samples from $x(P+1)$ up to $x(N)$ given the initial $P$ samples is given by:
+
+\[
+P\left[x(P+1),x(P+2),\dots,x(N) \ \mid \ x(1),x(2),\dots,x(P)\right] 
+= \prod_{n=P+1}^{N} p_e \left( x(n) - \sum_{k=1}^{P} a_k x(n-k) \right)
+\]
+
+Let us define the model in matrix form:
+
+\[
+\underline{\mathrm{x}} =
+\begin{bmatrix}
+x(1) \\[3pt]
+\vdots \\[3pt]
+x(N)
+\end{bmatrix}
+=
+\begin{bmatrix}
+\underline{\bar{\mathrm{x}}} \\[3pt]
+\underline{\hat{\mathrm{x}}}
+\end{bmatrix},
+\qquad
+\underline{\bar{\mathrm{x}}} =
+\begin{bmatrix}
+x(1) \\[3pt]
+\vdots \\[3pt]
+x(P)
+\end{bmatrix},
+\qquad
+\underline{\hat{\mathrm{x}}} =
+\begin{bmatrix}
+x(P+1) \\[3pt]
+\vdots \\[3pt]
+x(N)
+\end{bmatrix}
+\]
+
+We rewrite the AR model as follows:
+
+\[
+x(n) = \sum_{k=1}^{P} a_k x(n-k) + e(n)
+\quad \Rightarrow \quad
+\underline{\hat{\mathrm{x}}} =
+\begin{bmatrix}
+x(P+1) \\[3pt]
+\vdots \\[3pt]
+x(N)
+\end{bmatrix}
+=
+\begin{bmatrix}
+\sum_{k=1}^{P} a_k \ x(P+1-k) \\[3pt]
+\vdots \\[3pt]
+\sum_{k=1}^{P} a_k \ x(N-k)
+\end{bmatrix}
++
+\begin{bmatrix}
+e(P+1) \\[3pt]
+\vdots \\[3pt]
+e(N)
+\end{bmatrix}
+\]
+
+Equivalently, we can express this as the following \textbf{general linear model}:
+
+\[
+\underline{\hat{\mathrm{x}}} =
+\begin{bmatrix}
+x(P+1) \\[3pt]
+\vdots \\[3pt]
+x(N)
+\end{bmatrix}
+=
+\underbrace{
+\begin{bmatrix}
+x(P) & x(P-1) & \cdots & x(1) \\[3pt]
+x(P+1) & x(P) & \cdots & x(2) \\[3pt]
+\vdots & \vdots & \ddots & \vdots \\[3pt]
+x(N-1) & x(N-2) & \cdots & x(N-P)
+\end{bmatrix}}_{\left[\mathrm{G_x}\right]}
+\underbrace{
+\begin{bmatrix}
+a_1 \\[3pt]
+\vdots \\[3pt]
+a_P
+\end{bmatrix}}_{\underline{\mathrm{a}}}
++
+\underbrace{
+\begin{bmatrix}
+e(P+1) \\[3pt]
+\vdots \\[3pt]
+e(N)
+\end{bmatrix}}_{\underline{\mathrm{e}}}
+\quad \Rightarrow \quad
+\underline{\hat{\mathrm{x}}} = \left[\mathrm{G_x}\right] \ \underline{\mathrm{a}} + \underline{\mathrm{e}}
+\]
+
+
+This means that the previous conditional probability:
+
+\[
+P \left[ x(P+1), x(P+2), \ldots, x(N) \ \mid \ x(1), x(2), \ldots, x(P) \right]
+= \prod_{n=P+1}^{N} p_e \left( x(n) - \sum_{k=1}^{P} a_k \ x(n-k) \right)
+\]
+
+Can be rewritten as:
+
+\[
+P[\underline{\hat{\mathrm{x}}} \mid \underline{\bar{\mathrm{x}}}, \ \underline{\mathrm{a}}] = p_e \left( \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right] \ \underline{\mathrm{a}} \right)
+\]
+
+In the additional case of Gaussian excitation with zero-mean and variance $\sigma_e^2$:
+
+\[
+p_e \left( \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right] \ \underline{\mathrm{a}} \right)
+= \left( \frac{1}{2\pi\sigma_e^2} \right)^{\tfrac{N-P}{2}}
+\exp \left(
+-\frac{1}{2\sigma_e^2} \ \left( \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right] \ \underline{\mathrm{a}} \right)^T \left( \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right] \ \underline{\mathrm{a}} \right)
+\right)
+\]
+
+Let us recall the problem: we want to estimate the AR model parameters $\underline{\mathrm{a}}$ from the observed data $\underline{\mathrm{x}}$.
+The \textbf{Maximum Likelihood (ML) estimator} treats the parameters as unknown constants with no prior information.
+The observed data $\underline{\mathrm{x}}$ is considered random and we can often obtain the PDF for $\underline{\mathrm{x}}$ when the value of $\underline{\mathrm{a}}$ is known.
+This PDF is termed \textbf{likelihood} $L(\underline{\mathrm{x}}; \underline{\mathrm{a}})$ and is defined as follows:
+
+\[
+L(\underline{\mathrm{x}}; \underline{\mathrm{a}}) 
+= P\left[\underline{\hat{\mathrm{x}}} \mid \underline{\bar{\mathrm{x}}}, \ \underline{\mathrm{a}}\right] 
+= p_e \left(\underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right] \ \underline{\mathrm{a}}\right)
+\]
+
+The ML estimate for $\underline{\mathrm{a}}$ is that value $\underline{\mathrm{a}}^\mathrm{ML}$ that maximises the likelihood for given observations $\underline{\mathrm{x}}$:
+
+\[
+\underline{\mathrm{a}}^\mathrm{ML} = \arg \max_{\underline{\mathrm{a}}} \left\{ L(\underline{\mathrm{x}}; \underline{\mathrm{a}}) \right\}
+\]
+
+The rationale behind this is that the ML solution corresponds to the parameter vector which would have generated the observed data $\underline{\mathrm{x}}$ with highest probability.  
+It is usually computed by maximizing the log-likelihood.
+
+In our case, the ML estimator is obtained as:
+
+\[
+\underline{\mathrm{a}}^\mathrm{ML} = \arg \max_{\underline{\mathrm{a}}} \left\{ \log \left( p_e \left( \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right]\underline{\mathrm{a}} \right) \right) \right\}
+= \arg \max_{\underline{\mathrm{a}}} \left\{ -\frac{1}{2\sigma_e^2} \ \underline{\mathrm{e}}^T \underline{\mathrm{e}} \right\}
+= \arg \min_{\underline{\mathrm{a}}} \left\{ \underline{\mathrm{e}}^T \underline{\mathrm{e}} \right\}
+= \arg \min_{\underline{\mathrm{a}}} E,
+\qquad
+E = \underline{\mathrm{e}}^T \underline{\mathrm{e}}
+\]
+
+This result can be found by setting the following condition:
+
+\[
+\frac{\partial E}{\partial \underline{\mathrm{a}}}
+= 2 \underline{\mathrm{e}}^T \frac{\partial \underline{\mathrm{e}}}{\partial \underline{\mathrm{a}}}
+= 2 \left( \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right]\underline{\mathrm{a}} \right)^T 
+\frac{\partial \left(\underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right]\underline{\mathrm{a}}\right)}{\partial \underline{\mathrm{a}}}
+= 2 \left( \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right] \ \underline{\mathrm{a}} \right)^T \left[\mathrm{G_x}\right]
+= 0
+\]
+
+Finally, this can be solved with respect to the parameter vector $\underline{\mathrm{a}}$ as:
+
+\[
+\underline{\mathrm{a}}^\mathrm{ML} =
+\left( \left[\mathrm{G_x}\right]^T \left[\mathrm{G_x}\right] \right)^{-1} 
+\left[\mathrm{G_x}\right]^T \underline{\hat{\mathrm{x}}}
+\]
+
+\subsubsection{Signal estimation}
+We now focus on the problem of estimating the missing data: we can highlight some useful facts and hypotheses.  
+The model is \textbf{linear with respect to the data}, which simplifies the estimation.  
+The AR model is suitable for capturing the dynamics of the clean audio signal.
+As before, the prediction error (i.e. innovation) is assumed to be a white process, meaning it is uncorrelated and identically distributed across samples, and the prediction error is Gaussian, so incorrelation implies independency.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Signal estimation block.png}
+    \caption{Signal estimation block}
+\end{figure}
+
+\textbf{Least-Square Auto-Regressive (LSAR) interpolation} is usually employed in digital click removal, where samples are obliterated.
+We start from a block of data samples $x(n)$, assumed to be drawn from an AR process with coefficients $a_k$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{LSAR.png}
+    \caption{LSAR interpolation: known samples $\underline{\bar{\mathrm{x}}}$ and unknown samples $\underline{\hat{\mathrm{x}}}$ of the gap}
+\end{figure}
+
+To process the data, we work in a \textit{batch mode} by partitioning it into three blocks: $\underline{\bar{\mathrm{x}}}_L$ known samples on the left, $\underline{\hat{\mathrm{x}}}$ unknown samples (the gap), $\underline{\bar{\mathrm{x}}}_R$ known samples on the right.
+
+\[
+\underline{\bar{\mathrm{x}}}_L =
+\begin{bmatrix}
+x(1) \\[3pt]
+\vdots \\[3pt]
+x(m)
+\end{bmatrix},
+\qquad
+\underline{\hat{\mathrm{x}}} =
+\begin{bmatrix}
+x(m+1) \\[3pt]
+\vdots \\[3pt]
+x(m+l)
+\end{bmatrix},
+\qquad
+\underline{\bar{\mathrm{x}}}_R =
+\begin{bmatrix}
+x(m+l+1) \\[3pt]
+\vdots \\[3pt]
+x(N)
+\end{bmatrix}
+\]
+
+The complete data block can be written as follows:
+
+\[
+\underline{\mathrm{x}} =
+\begin{bmatrix}
+\underline{\bar{\mathrm{x}}}_L \\[3pt]
+\underline{\hat{\mathrm{x}}} \\[3pt]
+\underline{\bar{\mathrm{x}}}_R
+\end{bmatrix},
+\qquad
+\underline{\bar{\mathrm{x}}} =
+\begin{bmatrix}
+\underline{\bar{\mathrm{x}}}_L \\[3pt]
+\underline{\bar{\mathrm{x}}}_R
+\end{bmatrix}: \ \text{known samples}
+\]
+
+Let us rearrange the matrices as follows:
+
+\[
+\underline{\mathrm{x}} =
+\begin{bmatrix}
+\underline{\bar{\mathrm{x}}}_L \\[3pt]
+\underline{\hat{\mathrm{x}}} \\[3pt]
+\underline{\bar{\mathrm{x}}}_R
+\end{bmatrix}_{N \times 1}
+=
+\underbrace{\begin{bmatrix}
+\left[0\right]_{m \times l} \\[3pt]
+\left[\mathrm{I}\right]_{l \times l} \\[3pt]
+\left[0\right]_{(N-m-l)\times l}
+\end{bmatrix}_{N \times l}}_{\left[\mathrm{U}\right]}
+\underline{\hat{\mathrm{x}}}_{l \times 1}
++
+\underbrace{\begin{bmatrix}
+\left[\mathrm{I}\right]_{m \times m} & \left[0\right]_{m \times (N-m-l)} \\[3pt]
+\left[0\right]_{l \times m} & \left[0\right]_{l \times (N-m-l)} \\[3pt]
+\left[0\right]_{(N-m-l)\times m} & \left[\mathrm{I}\right]_{(N-m-l)\times (N-m-l)}
+\end{bmatrix}_{N \times (N-l)}}_{\left[\mathrm{K}\right]}
+\underline{\bar{\mathrm{x}}}_{(N-l)\times 1}
+\]
+
+The compact form becomes:
+
+\[
+\underline{\mathrm{x}} = \left[\mathrm{U}\right] \ \underline{\hat{\mathrm{x}}} + \left[\mathrm{K}\right] \ \underline{\bar{\mathrm{x}}}
+\]
+
+We remind that \(\underline{\hat{\mathrm{x}}}\) represents the unknown components, while \(\underline{\bar{\mathrm{x}}}\) represents the known components.
+Notice that the unknown samples can be at arbitrary positions in the block: they do not need to form a contiguous missing segment.
+
+We may notice that:
+
+\[
+\underline{\hat{\mathrm{x}}} = \left[\mathrm{G_x}\right]\underline{\mathrm{a}} + \underline{\mathrm{e}}
+\quad \Rightarrow \quad
+\underline{\mathrm{e}} = \underline{\hat{\mathrm{x}}} - \left[\mathrm{G_x}\right]\underline{\mathrm{a}}
+\]
+
+Which is explicitly:
+
+\[
+\begin{bmatrix}
+e(P+1) \\[3pt]
+\vdots \\[3pt]
+e(N)
+\end{bmatrix}
+=
+\begin{bmatrix}
+x(P+1) \\[3pt]
+\vdots \\[3pt]
+x(N)
+\end{bmatrix}
+-
+\begin{bmatrix}
+x(P) & \cdots & x(1) \\[3pt]
+\vdots & \ddots & \vdots \\[3pt]
+x(N-1) & \cdots & x(N-P)
+\end{bmatrix}
+\begin{bmatrix}
+a_1 \\[3pt]
+\vdots \\[3pt]
+a_P
+\end{bmatrix}
+\]
+
+\clearpage
+
+We can find a linear relation in $\underline{\mathrm{x}}$:
+
+\[
+\underbrace{
+\begin{bmatrix}
+e(P+1) \\[3pt]
+\vdots \\[3pt]
+e(N)
+\end{bmatrix}}_{\underline{\mathrm{e}}}
+=
+\underbrace{
+\begin{bmatrix}
+-a_P & -a_{P-1} & \cdots & -a_1 & 1 & 0 & \cdots & 0 \\[3pt]
+0 & -a_P & \cdots & -a_2 & -a_1 & 1 & \cdots & 0 \\[3pt]
+\vdots & \vdots & \ddots & \vdots & \vdots & \vdots & \ddots & \vdots \\[3pt]
+0 & 0 & \cdots & -a_P & \cdots & -a_2 & -a_1 & 1
+\end{bmatrix}}_{\left[\mathrm{A}\right]}
+\underbrace{
+\begin{bmatrix}
+x(1) \\[3pt]
+x(2) \\[3pt]
+\vdots \\[3pt]
+x(N)
+\end{bmatrix}}_{\underline{\mathrm{x}}}
+\]
+
+The conditional likelihood for white Gaussian excitation becomes:
+
+\[
+P\!\left(\underline{\hat{\mathrm{x}}} \mid \underline{\bar{\mathrm{x}}}, \ \underline{\mathrm{a}}\right)
+= \left(\frac{1}{2\pi\sigma_e^2}\right)^{\tfrac{N-P}{2}}
+\exp \left(-\frac{1}{2\sigma_e^2} \ \underline{\mathrm{x}}^T \left[\mathrm{A}\right]^T \ \left[\mathrm{A}\right] \ \underline{\mathrm{x}}\right)
+\]
+
+In order to express the unknown samples as a function of the known ones, we need to define an \textbf{objective function to optimize} (i.e., a cost function to minimize).
+We do so by defining an estimation error, then by minimizing its energy (i.e. Least Squares method).
+The cost function that we choose is the \textbf{prediction error energy} $E$ over the whole data block:
+
+\[
+E = \underline{\mathrm{e}}^{T}\,\underline{\mathrm{e}},
+\qquad
+\underline{\mathrm{e}} = \left[\mathrm{A}\right] \underline{\mathrm{x}}
+\]
+
+We remind that the block of data samples $\underline{\mathrm{x}}$ is assumed to be drawn from an AR process with coefficients (parameters) $a_k$.
+We already showed that the excitation vector $\underline{\mathrm{e}}$ can be written as a linear function of the whole block of data samples $\underline{\mathrm{x}}$.
+So, we can write:
+
+\[
+\underline{\mathrm{e}}
+= \left[\mathrm{A}\right]\underline{\mathrm{x}}
+= \left[\mathrm{A}\right]\left( \left[\mathrm{U}\right]\underline{\hat{\mathrm{x}}} + \left[\mathrm{K}\right]\underline{\bar{\mathrm{x}}} \right)
+= \underbrace{\left[\mathrm{A}\right]\left[\mathrm{U}\right]}_{\left[\hat{A}\right]} \ \underline{\hat{\mathrm{x}}}
++ \underbrace{\left[\mathrm{A}\right]\left[\mathrm{K}\right]}_{\left[\bar{A}\right]} \ \underline{\bar{\mathrm{x}}}
+= \left[\hat{A}\right]\underline{\hat{\mathrm{x}}} + \left[\bar{A}\right]\underline{\bar{\mathrm{x}}}
+\]
+
+We obtain a \textbf{column-wise partition} of $\left[\mathrm{A}\right]$ corresponding to unknown and known samples, respectively.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.25\linewidth]{LSAR energy minimization.png}
+    \caption{LSAR interpolation: minimization of energy $E$ with single global minimum}
+\end{figure}
+
+The LS interpolator works by \textbf{minimizing the energy} $E$ of the prediction error:
+
+\[
+\underline{\hat{\mathrm{x}}}_{\mathrm{LS}}
+= \arg \min_{\underline{\hat{\mathrm{x}}}} \left\{ E \right\}
+= \arg \min_{\underline{\hat{\mathrm{x}}}} \left\{ \underline{\mathrm{e}}^T \underline{\mathrm{e}} \right\}
+= \arg \min_{\underline{\hat{\mathrm{x}}}} \left\{ \underline{\mathrm{x}}^T \left[\mathrm{A}\right]^T \left[\mathrm{A}\right] \, \underline{\mathrm{x}} \right\}
+\]
+
+As the prediction error is a linear function of the data, the energy $E$ is a paraboloidal function of the data.
+Therefore, it has a \textbf{single global minimum}, which can be found by setting its gradient to zero:
+
+\[
+\underline{\hat{\mathrm{x}}}_{\mathrm{LS}}
+= \left\{ \, \underline{\hat{\mathrm{x}}}: \ \frac{\partial E}{\partial \underline{\hat{\mathrm{x}}}} = 0 \right\}
+\]
+
+\clearpage
+
+The computation is the following:
+
+\[
+\frac{\partial E}{\partial \underline{\hat{\mathrm{x}}}}
+= 2 \underline{\mathrm{e}}^T \frac{\partial \underline{\mathrm{e}}}{\partial \underline{\hat{\mathrm{x}}}}
+= 2 \underline{\mathrm{e}}^T \left[\hat{\mathrm{A}}\right]
+= 2 \left( \left[\hat{\mathrm{A}}\right] \underline{\hat{\mathrm{x}}}_{\mathrm{LS}} + \left[\bar{\mathrm{A}}\right] \underline{\bar{x}} \right)^T \left[\hat{\mathrm{A}}\right]
+= 0
+\quad \Rightarrow \quad
+\left( \underline{\hat{\mathrm{x}}}_{\mathrm{LS}}^T \left[\hat{\mathrm{A}}\right]^T + \underline{\bar{x}}^T \left[\bar{\mathrm{A}}\right]^T \right) \left[\hat{\mathrm{A}}\right]
+= 0
+\]
+
+\[
+\Rightarrow \quad
+\underline{\hat{\mathrm{x}}}_{\mathrm{LS}}^T \left[\hat{\mathrm{A}}\right]^T \left[\hat{\mathrm{A}}\right]
+= - \underline{\bar{x}}^T \left[\bar{\mathrm{A}}\right]^T \left[\hat{\mathrm{A}}\right]
+\quad \Rightarrow \quad
+\left[\hat{\mathrm{A}}\right]^T \left[\hat{\mathrm{A}}\right] \underline{\hat{\mathrm{x}}}_{\mathrm{LS}}
+= - \left[\hat{\mathrm{A}}\right]^T \left[\bar{\mathrm{A}}\right] \underline{\bar{x}}
+\]
+\[
+\Rightarrow \quad
+\underline{\hat{\mathrm{x}}}_{\mathrm{LS}}
+= - \left( \left[\hat{\mathrm{A}}\right]^T \left[\hat{\mathrm{A}}\right] \right)^{-1} \left[\hat{\mathrm{A}}\right]^T \left[\bar{\mathrm{A}}\right] \underline{\bar{x}}
+\]
+
+The method involves the solution of a set of $l$ linear equations, where $l$ is the number of missing samples in the block.  
+When there are at least $P$ known samples on either side of a single contiguous burst of missing samples, the LSAR estimate can be efficiently implemented by means of Levinson–Durbin recursion (i.e. Toeplitz system of equations). 
+The computational load is $\mathcal{O}(l^2)$ multiplies and additions.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Performance 1.png}
+    \includegraphics[width=0.4\linewidth]{Performance 2.png}
+    \caption{AR-based interpolation with $P=60$ of classical chamber music: short gaps of 25-50 samples (left), long gaps of 70-120 samples (right)}
+\end{figure}
+
+The method works well in most cases.
+It performs less well for signals that do not fit the modelling assumptions, such as periodic pulse-driven voiced speech.
+With longer gaps, the results tend to be dull.
+However, the situation improves by increasing the order, although the loss of noisy components can be perceived.  
+
+\clearpage

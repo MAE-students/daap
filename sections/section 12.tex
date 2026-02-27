@@ -1,0 +1,404 @@
+\section{Microphone Arrays: Acoustic Sources Separation}
+
+\subsection{Introduction}
+Let us consider the presence of $N$ acoustic sources in an environment, emitting different signal:
+
+\[
+s_{1}(n), \ s_{2}(n), \ \cdots, \ s_{N}(n)
+\]
+
+Such sources could be, for instance, multiple speakers in a room, musical instruments in a recording session, or environmental noise sources such as machinery and traffic.
+
+We acquire the signals using $M > 1$ microphones, placed at different positions in space.  
+Each microphone captures a mixture of the source signals, affected by the acoustic propagation paths (i.e. direct and reflected) and potentially corrupted by noise.
+Formally, the microphone signals are denoted as:
+
+\[
+y_{1}(n), \ y_{2}(n), \ \cdots, \ y_{M}(n)
+\]
+
+Each of them contains a linear combination of the $N$ source signals, shaped by the room impulse responses between each source and microphone.
+The \textbf{goal} is to obtain an estimation of the \textbf{original source signals} from the observed microphone signals.  
+This process, known as \textbf{acoustic source separation}, is essential for applications such as speech enhancement, meeting transcription, music signal processing and noise suppression in hearing aids.
+
+\subsection{Taxonomy of separation techniques}
+Different \textbf{taxonomies} can be adopted to categorise the separation techniques used to tackle the problem of acoustic source separation.  
+These taxonomies help identify the \textbf{most suitable approach} depending on the characteristics of the environment, the recording setup and the available prior knowledge.
+
+One relevant aspect is \textbf{how much information} we have about the \textbf{mixing process}, the way in which the signals from the sources combine at the microphones.  
+This knowledge can range from having no prior information, as in blind source separation, to knowing the exact characteristics of the mixing system, such as the impulse responses.
+
+Another important factor is whether the environment is \textbf{reverberating or not}.  
+In anechoic conditions, signals propagate without reflections, making separation easier.
+In reverberant conditions, the microphones capture multiple delayed and attenuated copies of each source, significantly increasing the complexity of the problem.
+
+Finally, the relationship between the \textbf{number of sources} and the \textbf{number of microphones} plays a crucial role.  
+If the number of sources is smaller than or equal to the number of microphones, the separation problem is more tractable.  
+If there are more sources than microphones, the system is underdetermined: we require more sophisticated processing methods.
+
+\subsubsection{Blind vs non-blind techniques}
+The first question to consider in the taxonomy of source separation techniques is: \textbf{how much information} do we have about the \textbf{mixing process}?
+The answer to this question determines whether we are working in a \textbf{blind} or \textbf{non-blind} setting.
+
+In \textbf{Blind Source Separation (BSS)}, the only available information consists of the microphone signals and, possibly, some a priori statistical knowledge of the source signals.
+The goal is to infer, without direct knowledge of the mixing system, the parameters of a demixing process that can recover the original sources from the observed mixtures.
+This is inherently an ill-posed problem and some indeterminacy in the demixing model remains, even after estimation.
+
+On the other hand, \textbf{Non-Blind Source Separation} assumes that we have some knowledge about the channel, typically by means of impulse responses.
+With this information, the objective is to invert a known (or partially known) system, which may be convolutional in nature.
+This additional knowledge generally simplifies the problem compared to the blind case, although challenges remain, especially in reverberant or noisy environments.
+
+\subsubsection{Instantaneous and convolutive mixing}
+The second question in our taxonomy concerns the environment: is it \textbf{reverberant or not}?  
+The answer determines whether the mixing is considered \textbf{instantaneous} or \textbf{convolutive}.
+
+In the case of \textbf{instantaneous mixing}, there is no reverberation (or it is negligible).  
+The microphone signals can be modelled as \textbf{linear combinations} of the source signals, possibly with complex-valued weights $a_{ij}$:
+
+\[
+\begin{bmatrix}
+y_{1}(t) \\
+\vdots \\
+y_{M}(t)
+\end{bmatrix}
+=
+\underbrace{
+\begin{bmatrix}
+a_{11} & \cdots & a_{1N} \\
+\vdots & \ddots & \vdots \\
+a_{M1} & \cdots & a_{MN}
+\end{bmatrix}
+}_{\text{mixing matrix}}
+\begin{bmatrix}
+s_{1}(t) \\
+\vdots \\
+s_{N}(t)
+\end{bmatrix}
+\]
+
+In this scenario, the separation problem reduces to finding and inverting the mixing matrix.
+
+In contrast, \textbf{convolutive mixing} arises in reverberant environments: each microphone signal is a filtered version of the source signals, where the \textbf{filters} $g_{ik}(n)$ correspond to the \textbf{acoustic paths} between the sources and the microphones.  
+The system is described by the following expression:
+
+\[
+y_{k}(n) =
+\sum_{i=1}^{N} \sum_{l=0}^{L-1} g_{ik}(l) \, s_{i}(n - l), 
+\qquad k = 1, \cdots, M
+\]
+
+The separation task now involves inverting a convolutive system, which is significantly more challenging.
+
+\subsubsection{Underdetermined and overdetermined source separation}
+The third question addresses the relationship between the \textbf{number of microphones} and the \textbf{number of sources}: is the number of microphones greater than the number of sources?
+
+When the number of microphones satisfies $ M > N $, the problem is said to be \textbf{overdetermined}.
+There are more measurements than unknown signals, which generally makes the separation task easier, as there is enough information to solve for the sources directly.
+
+On the other hand, when $ M < N $, the problem is \textbf{underdetermined}.
+There are fewer measurements than sources, making the separation not directly solvable without additional assumptions: it becomes necessary to estimate the mixing model using some a priori knowledge of the \textbf{statistical or structural properties} of the source signals.
+
+\subsection{Example: source separation using binary masks}
+Let us introduce a specific scenario: we consider an \textit{underdetermined} problem, with $M = 2$ microphones and $N = 3$ sources.
+The task is approached as a \textit{Blind Source Separation problem}, assuming \textit{low reverberation} in the environment.
+The sources are \textit{fixed in space} and consist of speech signals.
+
+The idea is to perform the separation in the \textbf{time-frequency domain} using the Short-Time Fourier Transform (STFT).  
+The method relies on \textbf{binary masking} of the spectrogram to isolate the contributions of the different sources.
+
+The motivation for this is that signals tend to be \textit{more sparse} in the time-frequency domain than in the time domain.  
+This sparsity means that, at many time-frequency points, only one source is dominant.  
+Such a property makes it easier to isolate individual sources by applying binary masks to the spectrogram, effectively zeroing out time-frequency regions where a given source is absent or weaker.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{Binary masking.png}
+    \caption{Binary masking for acoustic source separation: sources (left) and observations (right) spectograms}
+\end{figure}
+
+We denote by $Y_1(n,\omega_k)$ and $Y_2(n,\omega_k)$ the microphone signals STFTs and by $S_1(n,\omega_k)$, $S_2(n,\omega_k)$, $S_3(n,\omega_k)$ the source signals STFTs.
+An \textbf{assumption} we can make, which is reasonable for speech signals, is that at each \textbf{time-frequency pair} $(n,\omega_k)$, the microphone signals are associated to \textbf{only one source}.
+The goal is to find three \textbf{binary masks} $M_1, M_2, M_3$ which we can use to extract the source STFTs from one microphone STFT:
+
+\[
+\hat{S}_i(n,\omega_k) = Y_1(n,\omega_k) \cdot M_i(n,\omega_k), \qquad i = 1,2,3
+\]
+
+In order to find the solution, we can exploit \textbf{spatial information} to separate the sources.
+In absence of reverberation, the microphone signals contain attenuated and delayed versions of the source signals.
+For bins associated to the $i$-th source:
+
+\[
+\begin{cases}
+Y_1(n,\omega_k) = \alpha_{1i} \cdot S_i(n,\omega_k) \ e^{-j\omega_k\tau_{1i}} \\[5pt]
+Y_2(n,\omega_k) = \alpha_{2i} \cdot S_i(n,\omega_k) \ e^{-j\omega_k\tau_{2i}}
+\end{cases} \qquad i = 1,2,3
+\]
+
+Each time-frequency bin associated with the $i$-th source exhibits \textbf{constant time-delay} $T_i$ and \textbf{constant attenuation ratio} $A_i$:
+
+\[
+T_i = \tau_{2i} - \tau_{1i},
+\qquad
+A_i = \frac{\alpha_{2i}}{\alpha_{1i}}
+\]
+
+Regarding the methodology, for each time-frequency bin, we first compute the two quantities previously defined.
+The \textbf{amplitude ratio} $A(n,\omega_k)$ and the \textbf{time delay} $T(n,\omega_k)$ are:
+
+\[
+A(n,\omega_k) = \frac{\abs{Y_2(n,\omega_k)}}{\abs{Y_1(n,\omega_k)}},
+\qquad
+T(n,\omega_k) = \frac{\angle Y_2(n,\omega_k) - \angle Y_1(n,\omega_k)}{\omega_k}
+\]  
+
+These observations naturally cluster into three distinct regions in the $(A, T)$ plane, where the centroids are the pairs $(A_i, T_i)$ with $i = 1, 2, 3$.
+To associate each bin with a particular source, we can apply a \textbf{clustering algorithm} such as \textit{K-means}.  
+Once the association is established, we compute the \textbf{binary masks} according to:
+
+\[
+M_i(n,\omega_k) =
+\begin{cases}
+1, & [A(n,\omega_k), T(n,\omega_k)] \ \text{belongs to cluster} \ [A_i, T_i] \\[5pt]
+0, & \text{otherwise}
+\end{cases}
+\]
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Data clustering.png}
+    \includegraphics[width=0.42\linewidth]{Data clustering 2.png}
+    \caption{Examples of data clustering: phase difference $P$ vs level ratio $A$}
+\end{figure}
+
+\textbf{Space-time features} should be designed to work synergistically with the clustering algorithm.
+For example, \textit{K-means} can be sensitive when one feature has a much larger variance with respect to the others.  
+Clustering may also occur in a multi-dimensional space, meaning that each time-frequency bin can be represented with more than two features.  
+A suitable choice for time-frequency bin clustering via \textit{K-Means} is to use a feature vector containing \textbf{normalized amplitudes} $A_i$ and \textbf{normalized phase difference} $P$:
+
+\[
+A_i(n,\omega_k) = \frac{\abs{Y_i(n,\omega_k)}}{\sqrt{\sum_{m=1}^{M} \abs{Y_m(n,\omega_k)}^2}},
+\qquad
+P(n,\omega_k) = \frac{1}{2\pi} \angle \left( \frac{Y_2(n,\omega_k)}{Y_1(n,\omega_k)} \right)
+\]
+
+The feature vector is defined as follows:
+
+\[
+\Phi(n,\omega_k) = 
+\begin{bmatrix}
+A_1(n,\omega_k) \\
+A_2(n,\omega_k) \\
+P(n,\omega_k)
+\end{bmatrix} \in \mathbb{R}^3
+\]
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Mixing masks.png}
+    \end{minipage}
+    % \hspace{1cm}
+    \begin{minipage}[c]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Source separation.png}
+    \end{minipage}
+    % \hspace{1cm}
+    \begin{minipage}[c]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Source spectogram.png}
+    \end{minipage}
+    \caption{Example of mixing masks $M_i$ (left), resulting separated spectograms (center) and original sources spectograms $S_i$ (right)}
+\end{figure}
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.33\linewidth]{Mixing masks.png}
+%     \includegraphics[width=0.3\linewidth]{Source separation.png}
+%     \includegraphics[width=0.33\linewidth]{Source spectogram.png}
+%     \caption{Example of mixing masks $M_i$ (left), resulting separated spectograms (center) and original sources spectograms $S_i$ (right)}
+% \end{figure}
+
+\subsection{Source separation: Independent Component Analysis (ICA)}
+\textbf{Independent Component Analysis (ICA)} is a technique studied when the number of microphones $M \geq N$ is greater than or equal to the number of sources $N$ (in the following, $M = N = 2$).
+It applies in situations where no information is available about the mixing matrix (Blind Source Separation) and where the environment is non-reverberant (instantaneous mixing).
+
+\clearpage
+
+The instantaneous mixing process, in vector form, is expressed as:
+
+\[
+\underline{\mathrm{y}} = \left[\mathrm{A}\right] \underline{\mathrm{s}}
+\quad \Rightarrow \quad
+\underline{\mathrm{s}} = \left[\mathrm{W}\right] \underline{\mathrm{y}}
+\]
+
+The goal is to obtain a demixing matrix $\left[\mathrm{W}\right] = \left[\mathrm{A}\right]^{-1}$ without any prior knowledge of the source signals.
+The \textbf{fundamental hypothesis} of ICA is that the \textbf{sources} are statistically \textbf{independent}, meaning that their correlation matrix $\left[\mathrm{R}_{\mathrm{s}}\right]$ is diagonal:
+
+\[
+\left[\mathrm{R}_{\mathrm{s}}\right] = E\left\{ \underline{\mathrm{s}} \, \underline{\mathrm{s}}^{T} \right\}
+\]
+
+Additionally, the source signals have non-Gaussian statistics.
+
+\subsubsection{Ambiguities of ICA}
+
+There are two main \textbf{ambiguities}.
+First, we cannot determine \textbf{variances of independent components}: $\underline{\mathrm{s}}$ and $\left[\mathrm{A}\right]$ are unknown, any scalar multiplier in one of the sources can be cancelled by dividing the corresponding column of $\left[\mathrm{W}\right]$ by the same quantity.
+Second, We cannot determine the \textbf{order of independent components}: $\underline{\mathrm{s}}$ and $\left[\mathrm{A}\right]$ are unknown, we can freely change the order of the terms in the sum $ \underline{\mathrm{y}} = \left[\mathrm{A}\right] \underline{\mathrm{s}} $
+without affecting the final result $\underline{\mathrm{y}}$.
+
+\subsubsection{Statistical concepts and visual representation}
+
+We are going to use the following statistical concepts.
+\textbf{Independency}:
+\[
+p(y_{1}, y_{2}) = p_{1}(y_{1}) \, p_{2}(y_{2})
+\]
+
+\textbf{Uncorrelatedness} (covariance is zero):
+\[
+E\{y_{1}y_{2}\} - E\{y_{1}\} \, E\{y_{2}\} = 0
+\]
+
+Independency includes uncorrelatedness.
+We also remind the definition of \textbf{orthogonality}:
+
+\[
+E\{y_{1}y_{2}\} = 0
+\]
+
+Let us analyse an illustration of ICA:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\linewidth]{ICA.png}
+    \caption{Illustration of ICA}
+\end{figure}
+
+\clearpage
+
+On the left, we observe the joint distribution of two independent source signals $\underline{\mathrm{s}}_1$ and $\underline{\mathrm{s}}_2$, uniformly distributed within a square, according to the following probability density function (p.d.f.):
+
+\[
+p(s_i) =
+\begin{cases}
+\frac{1}{2\sqrt{3}}, & \abs{s_i} \leq \sqrt{3} \\[5pt]
+0, & \text{otherwise}
+\end{cases}
+\]
+
+In the center, the mixing process is represented as:
+
+\[
+\underline{\mathrm{y}} = \left[\mathrm{A}\right] \underline{\mathrm{s}},
+\qquad
+\left[\mathrm{A}\right] =
+\begin{bmatrix}
+2 & 3 \\
+2 & 1
+\end{bmatrix}
+\]
+
+This operation transforms the original independent sources into observed mixtures.
+
+On the right, we see the joint distribution of the mixtures $y_1$ and $y_2$. 
+The resulting distribution is an oriented parallelogram, showing that the mixtures are no longer independent.
+By identifying the edges of this parallelogram in the $(y_1, y_2)$ space, it is possible to estimate the mixing matrix $\left[\mathrm{A}\right]$, which is a crucial step in ICA for recovering the original independent sources.
+
+\subsubsection{Non-Gaussianity}
+
+The fundamental hypothesis of ICA stated that the \textbf{sources} are statistically independent and have \textbf{non-Gaussian statistics}.
+If the independent components were Gaussian, the joint distribution of the mixtures $\underline{\mathrm{y}}$ (in the case of an orthogonal mixing matrix) would be symmetric:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Gaussian joint density.png}
+    \caption{Joint density for Gaussian independent components}
+\end{figure}
+
+This symmetry means there is no information about the direction of the columns of the mixing matrix $\underline{\mathrm{A}}$.
+If the source variables are Gaussian, any orthogonal mixing matrix produces mixed components that are still independent and Gaussian.
+In this case, \textbf{source separation is not possible}.
+
+Let us remind of the \textbf{Central Limit Theorem}: the distribution of a sum of independent random variables tends toward a Gaussian distribution.
+This property can be exploited to estimate the mixing matrix $\left[\mathrm{A}\right]$. 
+Let us consider a generic mixture of the microphone signals:
+
+\[
+x = \underline{\mathrm{w}}^T \underline{\mathrm{y}} = \underline{\mathrm{w}}^T \left[\mathrm{A}\right] \underline{\mathrm{s}}
+\]
+
+Since $x$ is a linear combination of the components of $\underline{\mathrm{s}}$, it is always more Gaussian than the individual sources themselves.
+Therefore, if we choose $\underline{\mathrm{w}}$ such that the \textbf{non-Gaussianity} of $x$ is \textbf{maximized}, we move closer to recovering one of the original sources.  
+
+The vector $\underline{\mathrm{w}}$ does not provide information about the sign of $\underline{\mathrm{s}}$, leading to a \textbf{sign ambiguity}.
+Moreover, perfect separation is achieved when $\underline{\mathrm{w}}$ corresponds to one of the rows of the demixing matrix $\left[\mathrm{W}\right] = \left[\mathrm{A}\right]^{-1}$, but the order of the recovered components remains undetermined, which is known as \textbf{order ambiguity}.
+
+\subsubsection{Measures of non-Gaussianity}
+Let us define various measurements of non-Gaussianity.
+\textbf{Kurtosis} is a statistical measure that is zero for Gaussian variables and non-zero for non-Gaussian ones.  
+It is defined as:
+
+\[
+\mathrm{kurt}(x) = E\{x^4\} - 3 \left( E\{x^2\} \right)^2
+\]
+
+When $\mathrm{kurt}(x) < 0$, the random variable $x$ is classified as \textbf{sub-Gaussian}.
+Oppositely, if $\mathrm{kurt}(x) > 0$, the variable $x$ is \textbf{super-Gaussian}.  
+A practical approach for quantifying non-Gaussianity is to consider the absolute value $\abs{\mathrm{kurt}(x)}$ as a non-Gaussianity index.
+
+Another measurement involves \textbf{negentropy}.
+A key result in information theory states that a Gaussian random variable has the largest entropy among all random variables with the same variance.
+The \textbf{entropy} of a random variable $x$ with probability density function $f(x)$ is given by:
+
+\[
+H(x) = - \int f(x) \log f(x) \ dx
+\]
+
+If we consider a Gaussian random variable $x_{\text{Gaussian}}$ having the same variance as $x$, the negentropy is defined  and can be approximated as follows:  
+
+\[
+J(x) = H(x_{\text{Gaussian}}) - H(x) \approx \frac{1}{12} E\{x^3\}^2 + \frac{1}{48} \mathrm{kurt}(x)^2
+\]
+
+Maximizing the negentropy is equivalent to maximizing the non-Gaussianity of the signal.
+
+We can consider other measures of independency.
+The \textbf{mutual information} quantifies the dependence between random variables.  
+For $N$ random variables $x_1, x_2, \dots, x_N$, it is defined as:
+
+\[
+I(x_1, x_2, \dots, x_N) = \sum_{i=1}^{N} H(x_i) - H(\underline{\mathrm{x}}),
+\qquad H(\cdot): \text{entropy}
+\]
+
+Mutual information is always non-negative and equals zero if and only if the variables are statistically independent.  
+
+The \textbf{Kullback–Leibler divergence} is one of the most natural measures of independency: it is defined as the distance between the joint density $f(\underline{\mathrm{x}})$ and the product of its marginal densities.
+In other words, the Kullback–Leibler divergence measures how much one probability distribution differs from a second, reference probability distribution.
+
+\subsubsection{Estimation of the demixing matrix}
+Once we choose a suitable cost function $J(\underline{\mathrm{w}})$ (such as kurtosis, negentropy, or mutual information), the estimation of the demixing model is formulated as one of the following \textbf{optimization problems}, depending on the selected independence metric: 
+
+\[
+\hat{\underline{\mathrm{w}}} = \underset{\underline{\mathrm{w}}}{\arg \max} \ J(\underline{\mathrm{w}})
+\qquad \text{or} \qquad
+\hat{\underline{\mathrm{w}}} = \underset{\underline{\mathrm{w}}}{\arg \max} \ J(\underline{\mathrm{w}})
+\]
+
+\clearpage
+
+In practice, the demixing model is usually estimated through LMS-like \textbf{iterative algorithms}.
+Since the \textbf{cost function} is typically highly \textbf{non-linear}, these algorithms can be trapped in \textbf{local minima or maxima}.
+As a consequence, the obtained solution can depend on the \textbf{initial conditions} used for each realization:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{ICA convergence.png}
+    \caption{Demixing matrix estimation: example of convergence starting from different initial conditions}
+\end{figure}
+
+\clearpage

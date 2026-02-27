@@ -1,0 +1,579 @@
+\section{Digital Audio Restoration: Restoration of Global Degradations}
+\subsection{Introduction}
+
+The \textbf{restoration} of audio signals is important for several reasons.
+Expectations on sound quality drive the need for accurate reproduction.
+There is also a strong interest in preserving historical material, such as old records and old magnetic tapes, as well as reducing noise in modern digital recordings.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.28\linewidth]{DAR 1.png}
+    \includegraphics[width=0.32\linewidth]{DAR 2.png}
+    \includegraphics[width=0.3\linewidth]{DAR 3.png}
+    \caption{Audio and media archives containing tapes, records and reels}
+\end{figure}
+
+Degradations in audio signals can be grouped into two main classes.
+\textbf{Localized degradations} are discontinuities in the waveform that affect only certain samples (i.e. clicks, crackles, scratches, breakages or clipping).
+\textbf{Global degradations} act on all samples of the waveform and include background noise, wow, flutter and certain types of non-linear distortion.
+
+\subsection{Wiener filtering}
+Regarding the \textbf{restoration of global degradations}, let us introduce a frequency-based perspective.
+The \textbf{Wiener filter} is a signal processing technique used to recover a desired signal $s$ from an observed signal $x$ that has been corrupted by \textbf{additive noise} $v$: the signal $s$ and the noise $v$ are summed together, producing the input $x$ to a linear filter with impulse response $h$.  
+The output of the filter, denoted $y = \hat{s}$, is an estimate of the original signal $s$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{WF degradation.png}
+    \caption{Wiener filtering scheme for digital audio restoration}
+\end{figure}
+
+In this context, both the signal $s$ and the noise $v$ are assumed to be \textbf{stationary} and \textbf{uncorrelated} stochastic processes with zero mean.  
+The noise $v$ is considered additive, meaning that it simply adds to the signal without affecting it in any multiplicative or non-linear way.
+
+The main objective is to design the filter $h$ in such a way that the estimation error between the original signal $s$ and the filtered output $y$ is as small as possible in the mean squared sense.  
+Formally, the problem consists of finding $h$ that minimizes the \textbf{Mean Squared Error (MSE)}, defined as:
+
+\[
+\mathrm{MSE} = E\left\{ (s - y)^2 \right\},
+\qquad
+E\{\cdot\}: \text{expectation operator}
+\]
+
+Minimizing this expression leads to the so-called \textbf{Minimum Mean Squared Error (MMSE)} condition, which provides the optimal Wiener filter solution.
+The concept was first formalized by Norbert Wiener in 1949, who developed a complete mathematical framework for optimal filtering in the presence of noise.
+
+\clearpage
+
+\subsubsection{Orthogonality principle}
+
+The MSE is minimized when the estimation error $e$ is \textbf{orthogonal} to the observed signal $x$:
+
+\[
+e = (s - y) \perp x
+\]
+
+In other words, the error signal is \textbf{uncorrelated} with the input signal used for estimation.  
+Formally, this condition can be written as:
+
+\[
+E\left\{ \left[ s(n) - y(n) \right] \ x(m) \right\} = E\left\{ s(n) - y(n) \right\} \ E \left\{ x(m) \right\},
+\qquad
+\forall \ n, m
+\]
+
+If the signals involved are \textbf{zero-mean} processes, this simplifies to:
+
+\[
+E\left\{ \left[ s(n) - y(n) \right] \ x(m) \right\} = 0,
+\qquad
+\forall \ n, m
+\]
+
+This result is known as the \textbf{orthogonality principle} and it is a fundamental property of the Wiener filter: the optimal filter is such that its estimation error is orthogonal to the data used to obtain the estimate.
+
+\subsubsection{Wiener filter response}
+
+The orthogonality principle implies that:
+
+\[
+E\left\{ \left[ s(n) - y(n) \right] \ x(m) \right\} = 0
+\quad \Rightarrow \quad
+\underbrace{E\left\{ s(n) \ x(m) \right\}}_{R_{sx}} = \underbrace{E\left\{ y(n) \ x(m) \right\}}_{R_{yx}}
+\]
+
+That is, the \textbf{cross-correlation} $R_{sx}$ between the desired signal $s$ and the input $x$ must be equal to the \textbf{cross-correlation} $R_{yx}$ between the filter output $y$ and the input $x$.
+Since the output $y$ is obtained by filtering the input $x$ through $h$, we can write:
+
+\[
+y(n) = \sum_k h(k)\ x(n-k)
+\quad \Rightarrow \quad
+R_{sx}(n-m) = E\left\{ \underbrace{\sum_k h(k) \ x(n-k)}_{y(n)} \ x(m) \right\}
+\]
+
+Because $h$ is \textbf{deterministic}, it comes out of the expectation, leading to:
+
+\[
+R_{sx}(n-m) = \sum_k h(k) \ E\left\{ x(n-k) \ x(m) \right\}
+= \sum_k h(k) \ R_x(n-k-m),
+\qquad R_x: \text{\textbf{auto-correlation} of } x
+\]
+
+Finally, by setting $m=0$ for simplicity:
+
+\[
+R_{sx}(n) = \sum_k h(k) \ R_x(n-k)
+\]
+
+Taking the Discrete-Time Fourier transform (DTFT) of both sides gives the frequency-domain Wiener filter:
+
+\[
+P_{sx} (\omega) = H(\omega) \ P_x (\omega)
+\quad \Rightarrow \quad
+H(\omega) = \frac{P_{sx}(\omega)}{P_x(\omega)}
+\]
+
+The term $P_{sx}(\omega)$ is the \textbf{cross-power spectral density} between $s$ and $x$, while $P_x(\omega)$ is the \textbf{power spectral density} of $x$.
+
+\subsubsection{Considerations on power spectral densities}
+
+As we assumed before, the desired signal $s$ and the noise $v$ are uncorrelated and both have zero mean.  
+The \textbf{cross-correlation} $R_{sx}$ between original signal $s$ and noisy input $x$ is:
+
+\[
+R_{sx}(n) = E \left\{ s(k) \ x(k+n) \right\}
+\]
+
+The noisy input $x$ is the sum of clean signal $s$ and noise $v$:
+
+\[
+x(k+n) = s(k+n) + v(k+n)
+\quad \Rightarrow \quad
+R_{sx}(n) = E \left\{ s(k) \left[ s(k+n) + v(k+n) \right] \right\}
+\]
+
+By linearity of the expectation operator:
+
+\[
+R_{sx}(n) = E\left\{ s(k) \ s(k+n) \right\} + \cancel{E\left\{ s(k) \ v(k+n) \right\}}
+\]
+
+The second term is zero because $s$ and $v$ are uncorrelated and zero-mean:
+
+\[
+R_{sx}(n) = E\left\{ s(k) \ s(k+n) \right\} = R_s(n)
+\quad \overset{\mathcal{F}}{\longrightarrow} \quad
+P_{sx}(\omega) = P_s(\omega)
+\]
+
+This result simplifies the Wiener filter expression since the \textbf{cross-power spectrum} $P_{sx}$ reduces to the power spectrum $P_s$ of the clean signal $s$.
+
+The \textbf{auto-correlation} $R_x$ of $x$ is:
+
+\[
+R_x(n) = E\left\{ x(k) \ x(k+n) \right\}
+\]
+
+The noisy input $x$ is the sum of clean signal and noise:
+
+\[
+x(n) = s(n) + v(n)
+\quad \Rightarrow \quad
+R_x(n) = E\left\{ \left[s(k) + v(k)\right] \left[s(k+n) + v(k+n)\right] \right\}
+\]
+
+Expanding the terms:
+
+\[
+R_x(n) = E\left\{ s(k) \ s(k+n) \right\} + \cancel{E\left\{ s(k) \ v(k+n) \right\}} + \cancel{E\left\{ v(k) \ s(k+n) \right\}} + E\left\{ v(k) \ v(k+n) \right\}
+\]
+
+Since $s$ and $v$ are uncorrelated and zero-mean, the cross terms vanish:
+
+\[
+R_x(n) = E\left\{ s(k) \ s(k+n) \right\} + E\left\{ v(k) \ v(k+n) \right\} = R_s(n) + R_v(n)
+\quad \overset{\mathcal{F}}{\longrightarrow} \quad
+P_x(\omega) = P_s(\omega) + P_v(\omega)
+\]
+
+Thus, the \textbf{power spectrum} $P_x$ of the noisy signal $x$ is the sum of the power spectra $P_s$ and $P_v$ of clean signal $s$ and noise $v$.
+From all the previous derivations, we obtain the \textbf{optimal Wiener filter} in the frequency domain under the MMSE criterion:
+
+\[
+H(\omega) = \frac{P_{sx}(\omega)}{P_x(\omega)}
+\quad \Rightarrow \quad
+H(\omega) = \frac{P_s(\omega)}{P_s(\omega) + P_v(\omega)}
+\]
+
+This filter achieves MSE minimization (MMSE) between original signal $s$ and restored signal $\hat{s}$.  
+Since $H(\omega)$ is real and positive, it acts as a \textbf{zero-phase low-pass filter}, attenuating frequency components where the noise dominates.
+The quantities $P_s(\omega)$ and $P_v(\omega)$ denote the power spectral densities of the clean signal and the noise, respectively, which are assumed to be either known a priori or estimated from the data.
+
+\subsection{Non-zero mean values}
+So far, we assumed the signals involved in the Wiener filtering process to have \textbf{zero mean}: if the desired signal $s$ has a non-zero mean $m_s$, and the noise $v$ has a mean value $m_v$, we have to consider a correction in order to ensure proper operation of the filter.
+In this case, the first step is to \textbf{subtract both mean values} $m_s$ and $m_v$ from the input $x$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{WF structure.png}
+    \caption{Wiener filtering for digital audio restoration: non-zero mean generalization}
+\end{figure}
+
+The Wiener filter $H(\omega)$ is applied to this zero-mean version of the input.  
+Once the filtering is completed, the \textbf{mean} value of the signal $m_s$ is finally \textbf{added back} to the output, so that the estimate $\hat{s}$ correctly reflects the mean value of the original signal.
+This strategy guarantees that the Wiener filter works under the standard zero-mean assumption, while still being able to restore the correct mean at the output.
+
+\subsection{Filter’s bandwidth and SNR impact}
+In practice, the Wiener filter generally behaves as a low-pass filter.
+This behaviour comes from its frequency response:
+
+\[
+H(\omega) = \frac{P_s(\omega)}{P_s(\omega) + P_v(\omega)}
+\]
+
+When the signal-to-noise ratio is high, the filter tends to pass the signal unchanged:
+
+\[
+P_s(\omega) \gg P_v(\omega)
+\quad \Rightarrow \quad
+H(\omega) \to 1
+\]
+
+On the other hand, when the signal-to-noise ratio is low, the filter strongly attenuates the input:
+
+\[
+P_s(\omega) \ll P_v(\omega)
+\quad \Rightarrow \quad
+H(\omega) \to 0
+\]
+
+This means that filtering has little effect when the SNR is already high, as the signal is clean enough.
+On the other hand, when the SNR is very low, it is often better to discard the signal completely, since almost no useful information remains compared to the noise.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{WF signal power.png}
+    \includegraphics[width=0.3\linewidth]{WF noise power.png}
+    \includegraphics[width=0.3\linewidth]{WF filter power.png}
+    \includegraphics[width=0.3\linewidth]{WF filter power 2.png}
+    \caption{Wiener filtering: power spectra $P$ of different signals and filter response $H$}
+\end{figure}
+
+\subsection{Power spectra characterization}
+So far, we assumed that the \textbf{power spectra} $P_s$ and $P_v$ are known: in practice, this assumption is not very realistic.  
+The \textbf{noise} spectrum $P_v$ is usually \textbf{easier to estimate}, since recordings often contain silent segments that can be used as references for the noise statistics.
+By contrast, estimating the \textbf{signal} spectrum $P_s$ is \textbf{more challenging}.
+In some situations, we can rely on clean signal samples and assume that they share the same power spectral density.
+In other cases, $P_s$ may be inferred from portions of the recording where the noise is absent, whenever such regions exist.
+
+A typical approach to estimate the power spectral density is through the \textbf{periodogram}.
+Given $N$ frames $s_i(n)$ of the sound signal, we compute the Fourier transform $S_i(\omega)$ of each frame and estimate the PSD as the average of the squared magnitudes:  
+
+\[
+P_s(\omega) = \frac{1}{N} \sum_{i=1}^N \abs{S_i(\omega)}^2
+\]
+
+Another approach relies on \textbf{model-based estimation} techniques, where we approximate the spectral characteristics of the signal using parametric models such as autoregressive (AR), moving-average (MA), autoregressive moving-average (ARMA) or more sophisticated ARMAX models.
+
+\subsubsection{Definition of Power Spectral Density (PSD)}
+The \textbf{Power Spectral Density (PSD)} of a random process is usually defined as the Fourier transform of its autocorrelation function:
+
+\[
+P_s(\omega) = \mathcal{F}\{ R_s(n) \},
+\qquad
+R_s(n) = E \left\{s(k) \ s(k+n) \right\}
+\]  
+
+While this definition is rigorous, it is not always practical for direct computation.
+A more useful formulation is provided by the \textbf{Wiener-Khinchin theorem}, which relates the PSD to the expected value of the squared Fourier transform of the signal:
+
+\[
+P_s(\omega) = E \left\{ \abs{S(\omega)}^2 \right\}
+\]  
+
+In practice, this expectation is approximated by computing the average over finite-length windows.
+Considering $S_w(\omega)$ the Fourier transform of a windowed segment of the signal and $S_i(\omega)$ the Fourier transform of the $i$-th signal frame:
+
+\[
+P_s(\omega) = E \left\{ \abs{S(\omega)}^2 \right\} \approx E \left\{ \abs{S_w(\omega)}^2 \right\} 
+\approx \frac{1}{N} \sum_{i=1}^N \abs{S_i(\omega)}^2
+\]
+
+This method of estimation is called the \textbf{periodogram} and it corresponds to averaging the squared magnitudes of the Fourier transforms of several overlapping or non-overlapping frames of the signal.
+
+If the signal can be assumed \textbf{stationary} across the $N$ frames, the estimate becomes more reliable.
+Otherwise, if stationarity cannot be guaranteed, the best approximation available reduces to the squared Fourier transform of a single windowed frame:  
+
+\[
+P_s(\omega) \approx \abs{S_w(\omega)}^2
+\]
+
+\clearpage
+
+\subsection{Alternate formulation}
+In practice, we do not have direct access to the clean signal $s$, but we can observe the noisy signal $x$ and the noise $v$.
+For this reason, the Wiener filter can be reformulated in terms of the \textbf{available power spectral densities}.  
+The output spectrum $\hat{S}(\omega)$ becomes:
+
+\[
+\hat{S}(\omega) = H(\omega) X(\omega) 
+= \frac{P_s(\omega)}{P_s(\omega) + P_v(\omega)} X(\omega)
+= \frac{P_x(\omega) - P_v(\omega)}{P_x(\omega) - \cancel{P_v(\omega)} + \cancel{P_v(\omega)}} X(\omega)
+= \frac{P_x(\omega) - P_v(\omega)}{P_x(\omega)} X(\omega)
+\]  
+
+This shows that the filter response can be rewritten as follows:
+
+\[
+H(\omega) = \frac{\hat{S}(\omega)}{X(\omega)}
+= \frac{P_x(\omega) - P_v(\omega)}{P_x(\omega)} 
+= \frac{E \left\{ \abs{X(\omega)}^2 \right\} - E \left\{ \abs{V(\omega)}^2 \right\}}{E \left\{ \abs{X(\omega)}^2 \right\}} 
+\approx \frac{\abs{X_w(\omega)}^2 - \abs{V_w(\omega)}^2}{\abs{X_w(\omega)}^2}
+\]  
+
+We approximate the expectations with finite-time estimates, where $X_w(\omega)$ and $V_w(\omega)$ are Fourier transforms of windowed segments of, respectively, noisy signal $x$ and noise $v$.
+
+Notice that the numerator in this last expression may occasionally become negative due to random fluctuations.
+Since the power spectral density of $s$ is by definition non-negative, such situations must be corrected, for instance by clipping negative values to zero.
+
+\subsection{Implementation and performance}
+The Wiener filter is typically implemented in the frequency domain, using the Discrete Fourier Transform (DFT) and its inverse (IDFT).
+Since this implementation naturally performs a \textbf{circular convolution}, it corresponds to a true linear convolution only if the input sequences are adequately extended by \textbf{zero-padding}.
+This prevents undesired wrap-around effects, which would otherwise distort the filtered output.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{WF performance 1.png}
+    \includegraphics[width=0.6\linewidth]{WF performance 2.png}
+    \includegraphics[width=0.6\linewidth]{WF performance 3.png}
+    \caption{Wiener filtering performance: original signal $s$ (top), noisy signal $x$ (center) and estimation $y$ (bottom)}
+\end{figure}
+
+In terms of \textbf{performance}, the Wiener filter is well known for its effectiveness in reducing noise.
+It is theoretically optimal in the sense of minimizing the mean squared error (MMSE) between estimated and original signal.
+However, one may question whether this criterion always aligns with perceptual relevance.
+
+A limitation of the Wiener filter lies in its \textbf{stationarity}: it assumes that the signal and noise statistics remain constant over time.
+This is not always true for real-world signals, which are often non-stationary.
+As a result, the filter may introduce a \textbf{strong low-pass effect}, heavily impacting sound quality.
+To mitigate these limitations, we adopt \textbf{adaptive versions} of the Wiener filter, which are able to track time-varying statistics and reduce artifacts.
+
+\subsection{Power Spectral Matching (PSM)}
+The Minimum Mean Square Error (MMSE) criterion is not the only \textbf{possible measure of optimality}, neither it is necessarily the most suitable one from a perceptual standpoint.
+An alternative optimality criterion can be derived from the observation that the Wiener filter does not achieve exact power spectral matching.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{WF degradation.png}
+    \caption{Wiener filtering scheme for digital audio restoration}
+\end{figure}
+
+If the noisy signal $x$ is filtered by $H(\omega)$ to produce the estimate $\hat{s}$, the power spectral density of the output $y$ is:
+
+\[
+P_y(\omega) = P_x(\omega) H(\omega)^2 = P_x(\omega) \left( \frac{P_s(\omega)}{P_s(\omega) + P_v(\omega)} \right)^2
+= \frac{\cancel{P_x(\omega)}}{\cancel{P_s(\omega) + P_v(\omega)}} \frac{P_s(\omega)^2}{P_s(\omega) + P_v(\omega)}
+= \frac{P_s(\omega)^2}{P_s(\omega) + P_v(\omega)} \neq P_s(\omega)
+\]
+
+This shows that the Wiener filter output does not perfectly reproduce the spectral density $P_s$ of the original clean signal.
+To enforce \textbf{Power Spectral Matching (PSM)}, we could instead define the filter response as follows:
+
+\[
+\hat{H}(\omega) = \sqrt{\frac{P_s(\omega)}{P_s(\omega) + P_v(\omega)}} 
+\approx \sqrt{\frac{\abs{X_w(\omega)}^2 - \abs{V_w(\omega)}^2}{\abs{X_x(\omega)}^2}}
+\quad \Rightarrow \quad
+P_y(\omega) = P_x(\omega) \hat{H}(\omega)^2 = \frac{\cancel{P_x(\omega)} P_s(\omega)}{\cancel{P_s(\omega) + P_v(\omega)}} = P_s(\omega)
+\]
+
+The new filter definition $\hat{H}(\omega)$ guarantees that the spectral density of the restored signal matches that of the original source.  
+
+\subsection{Parametric Wiener filtering}
+The Wiener filter can also be expressed in the following equivalent form:
+
+\[
+H(\omega) = \frac{P_x(\omega) - P_v(\omega)}{P_x(\omega)} = 1 - \frac{P_v(\omega)}{P_x(\omega)}
+\]
+
+A useful extension of this concept is the \textbf{Parametric Wiener Filter}, which introduces two parameters: $\alpha$ and $\beta$. This formulation enables a \textbf{continuous transition} between the classical Wiener filter and the Power Spectral Matching (PSM) criterion.  
+The filter is defined as follows:
+
+\[
+H_p(\omega) = \left[ \frac{P_x(\omega) - \alpha P_v(\omega)}{P_x(\omega)} \right]^{\beta}
+= \left[ 1 - \alpha \ \frac{P_v(\omega)}{P_x(\omega)} \right]^{\beta}
+\]
+
+The parameter $\alpha$ controls the balance between noise suppression and signal preservation, while $\beta$ allows for shaping the aggressiveness of the filter response.
+In practice, small values of $\beta$ lead to smoother transitions and less attenuation, whereas larger values of $\beta$ enhance suppression at low signal-to-noise ratios (SNRs).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.33\linewidth]{WF parametric 1.png}
+    \includegraphics[width=0.35\linewidth]{WF parametric 2.png}
+    \caption{Parametric Wiener filtering: effect of $\beta$ (left) and $\alpha$ (right) on the filter response}
+\end{figure}
+
+The graphical representations confirm these effects: varying $\beta$ modifies the slope of the attenuation curve, while adjusting $\alpha$ determines the effective weight given to the noise component in relation to the signal.
+This parametric formulation thus provides a flexible trade-off between the traditional Wiener filter and exact spectral matching.
+
+\subsection{Background noise reduction}
+In many practical scenarios, noise is modelled as an additive component, where the useful signal $s$ and the noise $v$ are assumed to be uncorrelated.
+In this case, the observed signal $x$ and the Wiener filter output $y$ are:
+
+\[
+x = s + v,
+\qquad
+y = \hat{s} = H(\omega) \ x
+\]
+
+\textbf{Background noise}, such as the familiar hissing often heard in recordings, can be characterized as a single noise process that arises from several different sources.
+These include electrical circuit noise, irregularities introduced by storage media, and ambient sounds present in the recording environment.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{WF degradation.png}
+    \caption{Wiener filtering scheme for digital audio restoration}
+\end{figure}
+
+Such background noise typically contains components across the entire frequency range.
+In many cases, it can be modelled as a white random process: because of this, simple filtering or equalization methods are usually inadequate for effective suppression.
+A more rigorous stationary solution is provided by the \textbf{Wiener filter}, which minimizes the mean square error between the clean and estimated signals.
+However, when the noise characteristics vary over time, \textbf{adaptive strategies} are required.
+A notable example is the \textbf{Short-Time Spectral Attenuation (STSA)} method, which operates in a time-frequency framework and adapts the filtering to local spectral conditions.
+
+\subsubsection{Short-Time Spectral Attenuation (STSA)}
+While stationary filtering methods, such as the Wiener filter, can be effective in some cases, they are usually inadequate when the noise statistics vary over time.
+For this reason, an adaptive counterpart is often used, known as \textbf{Short-Time Spectral Attenuation (STSA)}.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{STSA.png}
+    \caption{Short-Time Spectral Attenuation (STSA) scheme}
+\end{figure}
+
+The method relies on a time-frequency analysis, typically based on the Short-Time Fourier Transform (STFT) or an equivalent filterbank.
+The noisy signal $x$ is first decomposed into \textbf{frequency bands} using the STFT.
+Within each band, the spectral components are attenuated according to a \textbf{suppression rule} that depends on the estimated noise power.
+Finally, the processed bands are recombined through the inverse STFT to obtain the enhanced signal $y$.
+
+The \textbf{attenuation function} $G(t_a^u, \Omega_k)$, at given time frame $t_a^u$ and frequency bin $\Omega_k$, depends on the power level $\abs{X(t_a^u, \Omega_k)}^2$ of the noisy signal measured at the same bin.
+It also depends on the power $\hat{P}_v(\Omega_k)$ of the noise at frequency $\Omega_k$, assumed stationary and estimated as follows:
+
+\[
+\hat{P}_v(\Omega_k) = E \left\{ \abs{V(t_a^u, \Omega_k)}^2 \right\}
+\]
+
+The suppression rule ensures that the estimated clean spectrum is obtained by attenuating each frequency component in proportion to its estimated signal-to-noise ratio.
+
+\subsubsection{Suppression rules}
+Different suppression rules can be formulated depending on the chosen optimality criterion.  
+The classical \textbf{Wiener suppression rule} is defined as follows:
+
+\[
+G(t_a^u, \Omega_k) = 1 - \frac{\hat{P}_v(\Omega_k)}{\abs{X(t_a^u, \Omega_k)}^2}
+\]
+
+The \textbf{PSM suppression rule} is defined as follows:
+
+\[
+G(t_a^u, \Omega_k) = \sqrt{1 - \frac{\hat{P}_v(\Omega_k)}{\abs{X(t_a^u, \Omega_k)}^2}}
+\]
+
+The \textbf{parametric Wiener suppression rule} is defined as follows:
+
+\[
+G(t_a^u, \Omega_k) = \left( 1 - \alpha \frac{\hat{P}_v(\Omega_k)}{\abs{X(t_a^u, \Omega_k)}^2} \right)^{\beta}
+\]
+
+We remind that $\alpha$ and $\beta$ are part of the parametric Wiener filter definition.
+
+It is important to observe that in all of the above cases, the asymptotic behaviour of the suppression function is consistent:
+
+\[
+\lim_{\text{SNR} \to +\infty} G(t_a^u, \Omega_k) = 1,
+\qquad
+\lim_{\text{SNR} \to 0} G(t_a^u, \Omega_k) = 0
+\]
+
+\subsection{De-reverberation (channel inversion)}
+In certain applications, such as speech analysis, \textbf{reverberations} are regarded as a problem since they act as a source of convolutive degradation.
+Mathematically, the observed signal $x$ is the convolution of the dry speech signal $s$ with the \textbf{Room Impulse Response (RIR)} $h$:
+
+\[
+x(n) = h \ast s \ (n)
+\]
+
+The challenge is therefore to remove, or at least minimize, the impact of reverberation.  
+The general algorithm can be summarized as follows:  
+
+\begin{enumerate}
+    \item Determine $h$: by direct measurement or by estimation from the reverberant speech $x$ (i.e. through cepstrum-based de-reverberation)
+    \item Determine an \textit{inverse} representation of $h$
+    \item Filter the observed signal $x$ with the inverse of $h$ in order to approximate the original clean signal
+\end{enumerate}
+
+To analyse de-reverberation in terms of channel inversion, we introduce the definition of the \textbf{complex cepstrum} $c_x$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{Cepstrum.png}
+    \caption{Complex cepstrum definition}
+\end{figure}
+
+Starting from the observed signal $x$, we take the Fourier transform, apply the logarithm and compute the inverse Fourier transform:
+
+\[
+c_x(n) = \mathcal{F}^{-1}\left\{\log X(\omega)\right\} = \mathcal{F}^{-1}\left\{\log \left(H(\omega) \ S(\omega) \right)\right\}
+\]
+
+According to the logarithmic property:
+
+\[
+c_x(n) = \mathcal{F}^{-1}\left\{\log \left(H(\omega) \ S(\omega) \right)\right\}
+= \mathcal{F}^{-1}\left\{\log \left(H(\omega)\right) + \log \left(S(\omega)\right)\right\} 
+= \underbrace{\mathcal{F}^{-1}\left\{\log \left(H(\omega)\right)\right\}}_{c_h(n)} + \underbrace{\mathcal{F}^{-1}\left\{\log \left(S(\omega)\right)\right\}}_{c_s(n)}
+\]
+
+This shows that the complex cepstrum corresponds to a spectral analysis of the log-spectrum.
+It separates the contribution of system $h$ and signal $s$, where low-quefrency terms typically represent the spectral envelope and high-quefrency terms represent fine spectral details.
+These different spectral components can then be isolated and \textit{liftered} out in order to minimize the effect of reverberation.
+
+In the log-spectrum representation, \textbf{speech components} tend to appear as \textbf{low-quefrency} contributions.
+This means that the cepstral representation of the speech, denoted by $c_s$, is concentrated close to the cepstral origin.
+By contrast, the \textbf{reverberant channel} is mainly represented by \textbf{high-quefrency} components.
+The cepstrum of the channel, denoted by $c_h$, is made of pulses that are located farther away from the origin.
+This separation between low and high-quefrency terms allows one to design de-reverberation schemes based on cepstral domain processing.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Dereverberation.png}
+    \caption{De-reverberation scheme}
+\end{figure}
+
+The observed signal $x$ is first transformed into its \textbf{cepstrum}.
+Once in the cepstral domain, we can inspect the coefficients to identify whether \textbf{peaks} related to \textbf{reverberation} are present.
+If such peaks are detected, they can be suppressed by setting them to zero.
+Alternatively, a \textbf{low-pass liftering} operation can be applied in order to preserve only the low-quefrency (speech-related) terms while attenuating the high-quefrency contributions (reverberation-related).
+After the undesired components have been reduced or eliminated, the modified cepstrum is transformed back into the time domain, resulting in the de-reverberated signal $\hat{s}$.
+
+\textbf{Channel inversion} refers to the concept of inverting the RIR $h$, obtaining a new filter $g$.
+Let us consider the room impulse response $h$ to be a \textbf{Finite Impulse Response (FIR)} filter.
+The goal is to estimate an inverse filter $g$:
+
+\[
+h \ast g \ (n) = \delta(n)
+\]
+
+In general, the inverse of an FIR filter is an Infinite Impulse Response (IIR) filter, which is not necessarily guaranteed to be stable.
+To avoid stability issues, we typically seek an \textbf{approximate FIR} inverse by formulating the problem as a least-squares solution of an overdetermined system of linear equations:
+
+\[
+\underbrace{
+\begin{bmatrix}
+1 \\ 0 \\ \vdots \\ 0
+\end{bmatrix}}_{\underline{d}}=
+\underbrace{
+\begin{bmatrix}
+h(0) & 0 & \cdots & 0 \\
+h(1) & h(0) & \ddots & \vdots \\
+\vdots & h(1) & \ddots & 0 \\
+h(N_h) & \vdots & \ddots & h(0) \\
+0 & h(N_h) & \ddots & h(1) \\
+\vdots & \ddots & \ddots & \vdots \\
+0 & \cdots & 0 & h(N_h)
+\end{bmatrix}}_{\left[ H \right]}
+\underbrace{
+\begin{bmatrix}
+g(0) \\ g(1) \\ \vdots \\ g(N_g)
+\end{bmatrix}}_{\underline{g}}
+\]
+
+The \textbf{least-squares estimate} of the inverse filter $g$ is computed as follows:
+
+\[
+\underline{g}_{LS} = \left[ \left[ H \right]^T \left[ H \right] \right]^{-1} \left[ H \right]^T \ \underline{d}
+\]
+
+Notice that if the impulse response $h$ is non-minimum phase (i.e. it has unstable zeros), then the residual error does not vanish even when the length of the inverse filter $N_g \to \infty$.
+
+\clearpage

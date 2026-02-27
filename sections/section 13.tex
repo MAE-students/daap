@@ -1,0 +1,389 @@
+\section{Features and Classification}
+
+\subsection{Introduction}
+Recent approaches in audio understanding rely on the combination of signal processing and machine learning techniques.
+It is now common to integrate \textbf{low-level signal processing} tools with methods from \textbf{artificial intelligence}.
+This synergy allows us to go beyond the classical raw signal analysis, moving towards a deeper signal understanding.
+Such methodologies open the door to several practical applications. Among the most relevant use cases are automatic music transcription, speaker recognition systems, audio-based surveillance systems and musical genre classification.
+Additionally, these techniques support systems for playlist generation and music recommendation, among many others.
+
+In this chapter, we focus on the problem of \textbf{sound classification}.
+The main task consists in analysing an audio track and associating a label or class to it, chosen from a predefined set of categories established during the design of the system.
+Typical examples of such classification tasks include deciding whether a given song belongs to the rock or jazz genre, whether a signal contains speech or music, or whether the sound source is a flute or a guitar.
+These are just a few representative scenarios within a broader and diverse range of possible classification challenges.
+
+\subsection{Sound classification}
+Let us consider a simplified classification scenario: a \textbf{forensic investigator} needs to attribute a speech audio recording $x_U(n)$ to one of two possible suspects.
+The goal is to determine the speaker using an \textbf{automatic and objective method}, based on the audio content alone.
+There are only two candidates: suspect A is characterized by a voice with high loudness and high fundamental frequency, while suspect B is known to speak with low loudness and low fundamental frequency.
+
+To support the classification task, the investigator has access to $M$ \textbf{recordings} of each suspect.
+The recordings from suspect A are denoted as $x^A_1(n),\ x^A_2(n),\ \ldots,\ x^A_M(n)$, while those from suspect B are $x^B_1(n),\ x^B_2(n),\ \ldots,\ x^B_M(n)$.
+For each audio recording $x(n)$, the investigator computes two descriptors.
+The first one is $l$, which approximates the \textbf{loudness} of the signal and can be estimated using the average signal amplitude.
+The second is $\omega$, representing the \textbf{fundamental frequency}, which can be derived by performing LPC residual analysis followed by peak detection.
+These two quantities are used to represent each audio sample in a \textbf{two-dimensional plane}, where the horizontal axis corresponds to $\omega$ and the vertical axis corresponds to $l$.
+
+The investigator then plots all recordings as points on this plane, using the coordinates $[l,\omega]$.
+Each recording of suspect A is placed according to its measured loudness and pitch, and the same is done for the recordings of suspect B.
+This produces two \textbf{clusters} in the plane, corresponding to the two individuals.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Sound classification example plane.png}
+    \caption{Sound classification: two-dimension features representation}
+\end{figure}
+
+To classify a new audio recording $x_U(n)$, the investigator extracts the same two descriptors: loudness $l^U$ and fundamental frequency $\omega^U$.
+The new recording is then represented as a point $[l^U, \omega^U]$ on the same $l - \omega$ plane.
+This point is visually \textbf{compared} with the \textbf{existing clusters}: the classification of the unknown track is performed based on its proximity to the two groups of samples from suspects A and B.
+
+Three scenarios may occur.
+In the first scenario, the new audio recording $x_U(n)$ is very close to the suspect B cluster: it is very likely that the recordings belongs to the suspect B.
+In the second scenario, the new audio recording $x_U(n)$ is very close to the suspect A cluster: it is very likely that the recordings belongs to the suspect A.
+In the third scenario, the new audio recording $x_U(n)$ is equidistant to both suspect A and B clusters: it may belong or not to any of the two suspects.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Sound classification test 1.png}
+    \includegraphics[width=0.4\linewidth]{Sound classification test 2.png}
+    \includegraphics[width=0.4\linewidth]{Sound classification test 3.png}
+    \caption{Sound classification: suspect B classification (left), suspect A classification (right), ambiguous result (bottom)}
+\end{figure}
+
+\subsubsection{Common pipeline}
+A typical classification system based on audio signals involves a two-stage process: training and testing.
+During the \textbf{training} phase, the system starts from a dataset made of signals $x_i(n)$ and corresponding labels $y_i$: each signal is processed by a \textbf{feature extractor}, which produces a \textbf{feature vector} $\underline{\mathrm{f}}_i$.
+These feature vectors and their corresponding labels $\{y_i\}$ are then used to train a \textbf{classifier} and obtain its model $\mathcal{M}$.
+
+In the \textbf{test} phase, a new unknown signal $x(n)$ is processed by the same feature extractor, resulting in a feature vector $\underline{\mathrm{f}}$ without label.
+The trained classifier assigns a predicted label $\hat{y}$ to the signal, based on the model $\mathcal{M}$ obtained during training.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Sound classification pipeline.png}
+    \caption{Common pipeline for sound classification}
+\end{figure}
+
+We define different components.
+The \textbf{training dataset} contains pairs of audio tracks and their labels $\{x_i(n),\ y_i\}$.
+The \textbf{feature extractor}, given an audio track, it extracts an $N$-element feature vector as the concatenation of multiple features:
+
+\[
+\underline{\mathrm{f}} = \left[\mathrm{f}_1,\ \mathrm{f}_2,\ \ldots,\ \mathrm{f}_N\right]
+\]
+
+The \textbf{classifier} is the system that maps feature vectors to labels.
+
+\subsubsection{Geometric interpretation}
+Each audio track is represented by a \textbf{feature vector}.
+If the feature extractor produces $N$ descriptors, this results in a feature vector like:
+
+\[
+\underline{\mathrm{f}} = \left[\mathrm{f}_1,\ \mathrm{f}_2,\ \ldots,\ \mathrm{f}_N\right]
+\]
+
+This vector can be interpreted as a point in an \textbf{$N$-dimensional space}.
+As an example, if we only extract two features $\mathrm{f}_1$ and $\mathrm{f}_2$, each audio track becomes a point in the 2D plane with coordinates $\left(\mathrm{f}_1,\ \mathrm{f}_2\right)$.
+This representation is useful for visualizing patterns or clusters among different classes of signals:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{Sound classification geometric interpretation.png}
+    \caption{Two-features sound classification}
+\end{figure}
+
+If the chosen features are relevant to the classification problem, then the points in the feature space naturally form clusters.
+Each \textbf{cluster} can be associated with a \textbf{specific audio class}: the role of the classifier is to learn how to draw \textbf{decision boundaries} in this space, effectively dividing it into regions corresponding to the different classes.
+Once trained, the classifier can determine the class of a new audio input by identifying the region in which its feature vector lies.
+
+\subsubsection{Considerations}
+To achieve successful classification, three main aspects need to be carefully addressed.
+First, the choice of a set of \textbf{relevant features} is essential.
+Clusters corresponding to different classes must be well separated in the feature space, meaning they should not overlap.
+Additionally, the points within a cluster must be compact, ideally concentrated around a central point: this separability and compactness are strongly dependent on the chosen features.
+
+Second, the choice of a \textbf{suitable classification system} plays a crucial role.
+The classifier must be capable of properly partitioning the feature space based on the distribution of the feature vectors, assigning each region to a specific class.
+
+Third, the choice of a \textbf{relevant training set} is vital.
+If the training data is not representative of the actual problem, the classifier will not generalize well and its performance will suffer.
+The training set must cover the variability of the problem domain accurately.
+
+\clearpage
+
+\subsection{Audio features}
+It is possible to extract several features or descriptors from an audio recording.
+These descriptors are numerical representations that aim to capture specific characteristics of the audio content and can be grouped into different families according to the nature of the information they express.
+
+\textbf{Basic descriptors} refer to features that relate to simple audio statistics.
+They are typically easy to compute and give a general overview of the signal properties.
+\textbf{Harmonicity descriptors} describe the harmonic components of an audio track.
+These features are useful for capturing more complex information such as pitch content or harmonic structure.
+\textbf{Timbral descriptors} capture information related to timbre, which is essential for distinguishing between different instruments or speakers.
+\textbf{Other descriptors} include additional features that may be defined using hand-crafted formulas.
+These depend on the specific application and aim to extract audio characteristics not covered by the other categories.
+
+Let us introduce some notation:
+
+\begin{center}
+    \begin{tabular}{ll}
+        $t$: index of time samples &
+        $s(t)$: input digital audio signal \\
+        $F_s$: sampling rate &
+        $l$: index of the time frame \\
+        $s_l(t)$: $l$-th frame from $s(t)$ &
+        $N_\text{hop}$: number of samples between successive frames \\
+        $L_w$: length of a time-frame [s] &
+        $N_w$: number of samples in each time frame \\
+        $L$: number of windows in $s(t)$ &
+        $k$: index of the frequency bin \\
+        $S_l(k)$: $k$-th coefficient of the DFT of $s_l(t)$ &
+        $P_l(k)$: $k$-th coefficient of the power spectrum of $s_l(t)$ \\
+        $N_\text{ft}$: number of bins of the DFT/power spectrum of $s_l(t)$ & \\
+    \end{tabular}
+\end{center}
+
+\subsubsection{Basic descriptors}
+The \textbf{Audio WaveForm (AWF)} descriptor consists of a temporal series of pairs of values [\verb|minRange|, \verb|maxRange|] extracted from all the frames.
+The quantity \verb|minRange| represents the lower limit of the audio amplitude in the frame, while \verb|maxRange| corresponds to the upper limit of the audio amplitude in the frame.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{AWF.png}
+    \includegraphics[width=0.45\linewidth]{AP.png}
+    \caption{Audio WaveForm (left), Audio Power (right)}
+\end{figure}
+
+The \textbf{Audio Power (AP)} describes the temporally smoothed instantaneous power of the audio signal.
+The AP coefficients are the average square of waveform values $s(t)$ within successive non-overlapping frames, assuming $N_\text{hop} = N_w$.
+
+\[
+\mathrm{AP}(l) = \frac{1}{N_\text{hop}} \sum_{t=0}^{N_\text{hop}-1} \left| s(t + l N_\text{hop}) \right|^2, \quad 0 \leq l \leq L - 1
+\]
+
+\clearpage
+
+The \textbf{Audio Spectrum Envelope (ASE)} is a log-frequency spectrum that can be used to generate a reduced spectrogram of the original audio signal.
+It is obtained by summing the energy of the original power spectrum within a series of frequency bands.
+The bands are logarithmically distributed (base 2 logarithms) between two frequency edges: \verb|loEdge| and \verb|hiEdge|.
+The spectral resolution $r$ of frequency bands within the [\verb|loEdge|,\verb|hiEdge|] interval can be chosen from eight possible values, ranging from 1/16 of an octave to 8 octaves.
+We denote with $b$ the index of the band in which ASE is computed:
+
+\[
+\mathrm{ASE}_b(l) = \sum_{k=\mathrm{lo}K_b}^{\mathrm{hi}K_b} P_l(k), \qquad 1 \leq b \leq B, \qquad
+\mathrm{lo}F_b = \mathrm{loEdge} \times 2^{(b-1)r}, \qquad
+\mathrm{hi}F_b = \mathrm{loEdge} \times 2^{br}
+\]
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{ASE.png}
+    \caption{Audio Spectrum Envelope and Power Spectrum}
+\end{figure}
+
+The \textbf{Audio Spectrum Centroid (ASC)} gives the center of gravity of a log-frequency power spectrum.
+All coefficients below $K_\mathrm{low} = 62.5$ Hz are summed and represented by a single coefficient, in order to prevent a non-zero DC component and/or very low frequency components from having a disproportionate weight.
+We define the following modified spectrum:
+
+\[
+P'(k') =
+\begin{cases}
+\sum_{k=0}^{K_\mathrm{low}} P(k) & k' = 0 \\
+P(k + K_\mathrm{low}) & 1 \leq k' \leq N_\mathrm{ft}/2 - K_\mathrm{low}
+\end{cases}
+\]
+
+The centers of gravity of each element in the power spectrum are:
+
+\[
+f'(k') =
+\begin{cases}
+31.25\ \mathrm{Hz} & k' = 0 \\
+f(k + K_\mathrm{low}) & 1 \leq k' \leq N_\mathrm{ft}/2 - K_\mathrm{low}
+\end{cases}
+\]
+
+The ASC is computed as:
+
+\[
+\mathrm{ASC}(l) = \frac{\sum_{k'=0}^{N_\mathrm{ft}/2 - K_\mathrm{low}} \log_2\left(\frac{f'(k')}{1000}\right) P'_l(k')}{\sum_{k'=0}^{N_\mathrm{ft}/2 - K_\mathrm{low}} P'_l(k')}
+\]
+
+The \textbf{Audio Spectrum Spread (ASS)} is another measure of the spectral shape.
+The ASS feature is extracted by taking the root-mean-square (RMS) deviation of the spectrum from its centroid ASC:
+
+\[
+\mathrm{ASS}(l) = \sqrt{\frac{\sum_{k'=0}^{N_\mathrm{ft}/2 - K_\mathrm{low}} \left[\log_2\left(\frac{f'(k')}{1000}\right) - \mathrm{ASC}(l)\right]^2 P'_l(k')}{\sum_{k'=0}^{N_\mathrm{ft}/2 - K_\mathrm{low}} P'_l(k')}}
+\]
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.45\linewidth]{ASC.png}
+    \includegraphics[width=0.45\linewidth]{ASS.png}
+    \caption{Audio Spectrum Centroid (left), Audio Spectrum Spread (ASS)}
+\end{figure}
+
+\subsubsection{Audio harmonicity}
+The basic spectral descriptors mentioned before give a smoothed representation of power spectra.  
+They cannot reflect the detailed structure of periodic sounds because of a lack of frequency resolution.
+The \textbf{audio harmonicity} descriptor provides different measures of the harmonic properties of a spectrum.
+
+The \textbf{harmonic ratio} is a measure of the proportion of harmonic components in the power spectrum.
+For a given frame, the \textbf{normalized autocorrelation} function of the signal is first estimated as:
+
+\[
+\Gamma_l(m) = \frac{\sum_{t=0}^{N_w-1} s_l(t) s_l(t - m)}{\sqrt{\sum_{t=0}^{N_w-1} s_l^2(n)} \sqrt{\sum_{t=0}^{N_w-1} s_l^2(n - m)}}, \qquad 1 \leq m \leq M ,\ 0 \leq l \leq L - 1, \qquad \mathrm{HR}(l) = \max_{m \in \mathcal{I}_m} \Gamma_l(m)
+\]
+
+The harmonic ratio $\mathrm{HR}(l)$ is defined as the maximum of the autocorrelation in the time interval $\mathcal{I}_m = \left[ M_\text{min}, M_\text{max} \right]$, where $M_\text{min} > 0$ prevents to extract the zero-lag peak, while $M_\text{max} = T_\text{max} F_s$ corresponds to the maximum fundamental period $T_\text{max}$ that can be estimated.
+
+\subsubsection{Timbral descriptors}
+The \textbf{timbral descriptors} aim at describing \textbf{perceptual features} of instrument sounds.
+Timbre refers to the features that allow one to distinguish two sounds that are equal in loudness, pitch and subjective duration.
+
+The temporal timbral descriptors are extracted from the \textbf{signal envelope} in the time domain.
+The signal envelope describes the energy change of the signal and is generally equivalent to the so-called \textbf{ADSR} (Attack, Decay, Sustain, Release) of a musical sound.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{ADSR.png}
+    \caption{ADSR envelope}
+\end{figure}
+
+The \textbf{Log Attack Time (LAT)} is defined as the time the sound envelope takes to reach the maximum amplitude of a signal from a minimum threshold time.
+Its main motivation is the description of the onsets of single sound samples from different musical instruments.
+LAT is defined as the logarithm of the duration from time $T_\text{start}$ when the signal starts to time $T_\text{stop}$ when it reaches its maximum value (for a percussive sound) or its sustained part (for a sustained sound, before the decay phase):
+
+\[
+\mathrm{LAT}^\text{P} = \log_{10}\left[T_\text{stop} - T_\text{start}\right], \qquad
+\mathrm{LAT}^\text{S} = \log_{10}\left[T_\text{sustain} - T_\text{start}\right]
+\]
+
+The \textbf{Mel-Frequency Cepstrum Coefficients (MFCC)} can be used as an excellent feature vector for representing the \textit{human voice} and \textit{musical signals}.
+In particular, the MFCC parametrization of speech has proven to be beneficial for speech recognition.
+A \textbf{non-linear mel-frequency scale} is used, which approximates the behaviour of the auditory system.
+To convert a frequency in Hz into its equivalent in \textit{mel}:
+
+\[
+f_\text{mel} = 1127.0148 \cdot \log\left(1 + \frac{f_\text{Hz}}{700}\right)
+\]
+
+The MFCCs are based on the \textbf{extraction} of the signal energy within \textbf{critical frequency bands} by means of a series of \textbf{triangular filters} whose center frequencies are equally spaced according to the \textit{mel} scale.
+The log-energy of the spectrum is measured within the pass-band of each filter, resulting in a \textbf{reduced representation} of the spectrum.
+The \textbf{cepstral coefficients} are finally obtained through a\textbf{ Discrete Cosine Transform (DCT)} of the reduced log-energy spectrum.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Mel scale.png}
+    \caption{Mel-scale filterbank for MFCC extraction}
+\end{figure}
+
+We remind that the DCT is a mathematical transformation that expresses a sequence of data points as a sum of cosine functions oscillating at different frequencies, commonly used in signal processing for energy compaction and decorrelation.
+Unlike the \textit{Fourier Transform}, which uses both sine and cosine terms and produces complex-valued outputs, the DCT uses only cosine terms and yields real-valued coefficients, making it more suitable for representing real-valued signals such as audio envelopes.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{MFCC computation.png}
+    \caption{MFCC computation}
+\end{figure}
+
+\subsubsection{Other descriptors}
+The \textbf{Zero-Crossing Rate (ZCR)} is computed counting the number of times that the audio waveform crosses the zero axis:
+
+\[
+\mathrm{ZCR}(l) = \frac{F_s}{2N_w} \sum_{t=1}^{N_w-1} \abs{ \mathrm{sign}\left[s_l(t)\right] - \mathrm{sign}\left[s_l(t-1)\right] }
+\]
+
+The \textbf{Spectral Roll-off Frequency} is defined as the frequency $f_{\mathrm{roll}}$ below which the 85\% of the accumulated spectrum magnitude is concentrated:
+
+\[
+\sum_{k=0}^{k_{\mathrm{roll}}} \abs{ S_l(k) } = 0.85 \sum_{k=0}^{N_\text{ft}/2} \abs{ S_l(k) }
+\]
+
+The \textbf{Spectral Flux} is defined as the average variation of the signal amplitude between adjacent frames.
+It is computed as the average squared difference between two successive spectral distributions:
+
+\[
+\mathrm{SF} = \frac{1}{L N_\text{ft}} \sum_{l=2}^{L} \sum_{k=1}^{N_\text{ft}} \left\{ \log\left[ \abs{ S_l(k) } + \varepsilon \right] - \log\left[ \abs{ S_{l-1}(k) } + \varepsilon \right] \right\}^2
+\]
+
+\subsection{Classification methods}
+In this section, we introduce several fundamental classification approaches commonly used in supervised learning tasks.
+These methods aim to associate input features with discrete class labels and are particularly relevant in applications such as audio classification or instrument recognition.
+We begin by presenting the basic framework of supervised classification and explore various algorithms, from simple instance-based models like KNN to more structured approaches such as linear classifiers and Support Vector Machines.
+We also consider how these methods can be extended to handle problems involving more than two classes.
+
+\subsubsection{Supervised classification and KNN}
+The task we are interested in is that of \textbf{prediction}: given an observation $x(n)$, the goal is to predict its class or label $y$ within a set of categories.
+To solve this prediction problem, we make use of \textbf{supervised classifiers}: at training time, both input data (i.e. audio tracks or extracted features) and associated labels, predictions or classes are available.
+A supervised classifier learns a mapping between input data and labels and multiple algorithms exist to address this task.
+
+The \textbf{K Nearest Neighbor (KNN)} method is a simple and intuitive non-parametric classification algorithm.
+During the training phase, we store all pairs of feature vectors and their corresponding labels from the training dataset.
+At test time (or deployment), given a data point to classify, we identify the $K$ \textbf{training points closest} to it in the feature space.
+We then assign the class label by applying \textbf{majority} voting over the labels of these $K$ nearest neighbours.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{KNN.png}
+    \caption{KNN feature space: class A training points (\textcolor{red}{$\blacktriangle$}), class B training points (\textcolor{blue}{$\blacksquare$}), test data point (\textcolor{green}{$\bullet$})}
+\end{figure}
+
+A \textbf{smaller value} of $K$ makes the KNN model more \textbf{flexible}, which can lead to better adaptation to local data variations, but may also increase \textbf{sensitivity to noise}.
+The KNN algorithm requires no explicit training phase, since all the work is deferred to the classification stage.
+To reduce the computational cost of finding the $K$ nearest neighbours at prediction time, \textbf{efficient indexing} techniques can be employed.
+However, KNN tends to \textbf{perform poorly in high-dimensional spaces}, where distance metrics become less meaningful and approximate neighbour search methods may be necessary.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{KNN example.png}
+    \caption{KNN classifier with $K=3$: specific test data point (left) and region separation (right)}
+\end{figure}
+
+\subsubsection{Linear classification and SVM}
+In many situations, the classifier can be a \textbf{linear separator}.
+This can be extended to multiple dimensions with planes or hyper-planes.
+In the \textbf{training} phase, we estimate a line that separates the training points belonging to the two classes, using iterative algorithms.
+In the \textbf{test} phase, we check whether the new data point to classify lies on one side or the other of the separating line, plane, or hyper-plane.
+
+\textbf{Linear SVM} is a type of linear classifier that not only attempts to separate the data with a line or hyperplane, but also considers the distance between the data points and the decision boundary.
+The key idea is to introduce the concept of a \textbf{margin} between classes.
+Rather than simply finding any separating hyperplane, SVM aims to maximize this margin, meaning it looks for the hyperplane that keeps the classes as far apart as possible.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.3\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Linear classification.png}
+    \end{minipage}
+    \hspace{0.5cm}
+    \begin{minipage}[c]{0.35\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Linear SVM.png}
+    \end{minipage}
+    \caption{Linear classification (left), linear SVM (right)}
+\end{figure}
+
+This margin is defined as the distance between the hyperplane and the closest training points from each class, which are called \textbf{support vectors}.
+These vectors are the most informative data points for the model, as they determine the position and orientation of the optimal separating hyperplane.
+The optimal decision boundary is, therefore, the one that not only separates the data correctly (when possible), but also maximizes the minimum distance from the samples to the separating surface.
+
+\subsubsection{Multi-class problems}
+Classification tasks may involve more than two possible outcomes.
+In this case, we speak of \textbf{multi-class} classification problems.
+This means that, for a given input, the classifier must predict its label among more than two categories.
+
+It is possible to solve multi-class problems by combining multiple \textbf{binary classifiers}, each of which is trained to distinguish between only two classes at a time.
+These binary classifiers are then strategically arranged and combined to produce a final multi-class prediction.
+
+One common approach is the \textbf{one-vs-all} (or one-vs-rest) strategy: for each class, a binary classifier is trained to distinguish that class from all the others grouped together.
+At test time, each classifier outputs a confidence score, and the class with the highest score is selected as the final prediction.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Multi-class classificatin.png}
+    \caption{Multi-class problem: one-vs-all strategy}
+\end{figure}
+
+\clearpage

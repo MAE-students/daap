@@ -1,0 +1,660 @@
+\section{Digital Audio Restoration}
+
+\subsection{Introduction}
+Let us consider a musical performance captured during a \textbf{recording} process.
+During this stage, non-intentional \textbf{degradations} can occur, such as imperfections in the recording machinery or misalignments, for instance caused by an incorrect playback speed.
+In some cases, intentional \textbf{alterations} are introduced, such as equalization using \textit{Noise Reduction Systems (NRS)} or other processing techniques.
+The resulting signal is then stored on a \textbf{support medium}.
+
+In the \textbf{restoration} process, the support is first paired with an appropriate \textbf{playback device} (i.e. equipment choice).
+The signal is transferred and \textbf{restoration} procedures are applied to counteract degradations due to \textbf{aging of the medium}.
+Equalization is performed to \textbf{correct spectral imbalances}, followed by restoration operations addressing \textbf{unintentional alterations} introduced in earlier stages.
+Finally, the material can undergo \textbf{re-interpretation}, which may include re-channelling or remixing to produce a modified version of the original recording.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{Degradation and restoration.png}
+    \caption{Degradation and restoration scheme}
+\end{figure}
+
+\subsection{Brief history of sound recording}
+The origins of sound recording technology trace back to the mid-19th century.
+In 1857, the French inventor \textbf{Léon Scott} developed the \textbf{phonautograph}, a device capable of visually representing voice waveforms on paper.
+This was a storing-only technology, without the capability to reproduce sound.
+In 1877, \textbf{Thomas A. Edison} invented the cylinder \textbf{phonograph}, a device that could inscribe an aluminum sheet using a steel point stylus.
+This represented a significant breakthrough, as it allowed both storage and reproduction of sound.
+A decade later, in 1887, \textbf{Alexander Graham Bell} introduced a commercial variant based on beeswax cylinders.
+In the same period, \textbf{Emil Berliner} demonstrated at the Franklin Institute the first flat disk record together with the gramophone, marking a pivotal transition in sound recording media and playback systems.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Edison.png}
+    \includegraphics[width=0.21\linewidth]{Berliner.png}
+    \caption{Thomas A. Edison (left), Emil Berliner (right)}
+\end{figure}
+
+The transition \textbf{from purely mechanical} sound recording, which relied on a horn and diaphragm, \textbf{to electric recording} marked a major milestone in audio technology.
+In 1925, Emil Berliner carried out his first non-acoustic recording at Columbia studios using the \textbf{WestRex process}.
+This approach employed an electric microphone and a vacuum tube amplifier to generate an electrical signal that directly controlled the record cutting tool, allowing for improved fidelity and consistency compared to mechanical methods.
+A decade later, significant advancements in sound quality were achieved, notably through bandwidth extension and the reduction of surface noise.
+In 1935, Alan Blumlein demonstrated the first stereo recording process.
+That same year, the German company AEG introduced the precursor of the magnetic tape recording system, laying the groundwork for future developments in multitrack recording and high-fidelity reproduction.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.35\linewidth]{Non-acoustic recording.png}
+    \includegraphics[width=0.34\linewidth]{Non-acoustic recording 2.png}
+    \caption{First sound recordings}
+\end{figure}
+
+The development of \textbf{audio formats} and \textbf{storage media} in the mid-20th century greatly expanded the possibilities for recording, editing, and distributing sound.
+In 1947, \textbf{tape recording} evolved into its modern form, making it possible for the first time to edit recordings practically through the \textit{cut and splice} technique.
+By the late 1940s, the \textbf{vinyl LP} and \textbf{45-rpm singles} were introduced, providing durable and higher-quality storage formats for music distribution.
+The 1950s brought notable advances in \textbf{stereophonic sound}.
+In 1954, stereophonic tapes entered production, followed by the first \textbf{stereo disks} in 1958.
+During the late 1950s, \textbf{analogue electronic technology} for audio processing was developed, enabling more sophisticated sound manipulation.
+A major leap into the digital era occurred in 1982 with the introduction of the \textbf{Compact Disc (CD)}, a format capable of storing stereo audio with a bandwidth of up to 20 kHz at a 16-bit resolution, setting new standards for audio fidelity and durability in consumer formats.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{Storage media.png}
+    \caption{Audio storage}
+\end{figure}
+
+% \subsubsection{History of tape recording (\textit{optional})}
+% The \textbf{first audio magnetic recording technology} was invented in 1889 by the Danish-American engineer Valdemar Poulsen. This is how he demonstrated the idea in the lab:
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.5\linewidth]{Tape history 1.png}
+%     \caption{First audio magnetic recording technology}
+% \end{figure}
+
+% \textbf{Paulsen’s steel wire} recording (1889) (working similarly to a tape recorder) unwinds from one reel, passes through a recording head, and is wound onto the other reel.  
+% In the head, the audio signal to be recorded passes through an electromagnet, creating a varying magnetic field. This produces a varying magnetization in the wire, which is a record of the instantaneous sound amplitude.  
+% To play it back, the wire passes through a playback head where another electromagnet detects the varying magnetization and translates it back into a varying electrical signal. The signal is then amplified and applied to a loudspeaker.  
+% Wire recorders had poor audio quality and were eventually replaced by magnetic tape recording in the 1940s.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[c]{0.3\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 2.png}
+%         \caption{Peirce 55-B dictation wire recorder (1945)}
+%     \end{minipage}
+%     \hfill
+%     \begin{minipage}[c]{0.3\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 3.png}
+%         \caption{Silvertone recording wire}
+%     \end{minipage}
+%     \hfill
+%     \begin{minipage}[c]{0.25\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 4.png}
+%         \caption{Telegraphone wire recorder (1922), used by RCA in New York to record high-speed Morse code messages}
+%     \end{minipage}
+% \end{figure}
+
+% The \textbf{Magnetophon} (AEG's first tape recorder, 1935) was the first reel-to-reel tape recorder developed by the German electronics company AEG in the 1930s, based on the magnetic tape invention by Fritz Pfleumer.  
+% Later models introduced the concept of AC tape bias, which improved sound quality by largely eliminating background hiss with enormous quality improvement. Adolf Hitler used these machines to perform what appeared to be live broadcasts from one city while he was in another.  
+% Two later model Magnetophons were taken to the US after the war, which included both the newer oxide-coated PVC tape developed by I.G. Farben (BASF division) as well as the AC bias system.  
+% The Army officer who tracked them down, Jack Mullin, used these machines as the basis of his own designs, which he first demonstrated to the San Francisco chapter of the Institute of Radio Engineers in May 1946, and later at the MGM Studios in Hollywood in October of that year. Attending the SF demo were Ampex engineers who were inspired to design their own reel-to-reel recorder based on Mullin's modified Magnetophon. A demonstration of the Ampex Model 200A was arranged with Bing Crosby. The playback audio quality was good enough to get Crosby to agree to work with them (by arranging financial support for start-up manufacturing). The Ampex 200A went into production and within three years most major recording studios had purchased one.  
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[c]{0.3\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 5.png}
+%         \caption{AEG created the world's first practical tape recorder, the K1, first demonstrated in 1935 at the Berlin Radio Show (tape speed: 100 cm/s)}
+%     \end{minipage}
+%     \hspace{2cm}
+%     \begin{minipage}[c]{0.35\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 6.png}
+%         \caption{Ampex Model 200A, famously supported by Bing Crosby, marked the start of widespread tape recording in studios}
+%     \end{minipage}
+% \end{figure}
+
+% The \textbf{Tefifon} (1936) was a vinyl belt housed in a cassette.
+% Manufactured and sold in Germany, it was the first audio cassette.  
+% The cassette was loaded with an endlessly looped reel (similar to the 8-track tape) of plastic tape. Depending on the size of the tape, the play time could range from 15 minutes to 4 hours.  
+% Tefifon production at its main plant in Porz am Rhein ceased in 1965.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[c]{0.35\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 7.png}
+%         \caption{Examples of Tefifon vinyl belt cassettes}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[c]{0.35\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 8.png}
+%         \caption{Tefifon playback machine}
+%     \end{minipage}
+% \end{figure}
+
+% Due to its small size, the \textbf{Minifon} (analog magnetic wire, 1951) was adopted by many governments as a “spy” recorder.  
+% It was a battery-operated miniature tape recorder developed by German electrical engineer Willi Draheim.  
+% The wire would run at a speed of 30 cm/s (about 11.8 ips).
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.45\linewidth]{Tape history 9.png}
+%     \caption{Examples of Minifon magnetic wire reels}
+% \end{figure}
+
+% \textbf{PYE and Telefunken magnetic discs} (1953) were discs that allowed users to record on a magnetic disc instead of tape.  
+% The recording was made on a flexible plastic, pre-grooved disc coated with magnetic compound.  
+% Each disc had a running time of about 10 minutes. The recording could be played back through a loudspeaker similar to Gramophone records of the time.  
+% They were manufactured well into the 1960s.
+
+% \begin{figure}[H]
+%     \centering
+%     \includegraphics[width=0.5\linewidth]{Tape history 10.png}
+%     \caption{PYE and Telefunken magnetic discs with accessories}
+% \end{figure}
+
+% The \textbf{Grunding Stenorette} (1954) was used in office dictation machines and was one of the first devices to employ magnetic tape.
+% It worked with a single reel of 1/4'' tape, with a typical recording time of 25–30 minutes.  
+% These machines continued to be manufactured into the 1970s.
+
+% The \textbf{Mohawk Midgetape} (1955) was an early portable tape recorder.  
+% It was manufactured with a sturdy metal casing and used 1/4'' tape, giving about 45 minutes of recording per side.  
+% Production continued into the mid-1960s.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[c]{0.25\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 11.png}
+%         \caption{Grundig Stenorette cassette tape}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[c]{0.4\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 12.png}
+%         \caption{Examples of the Mohawk Midgetape recorder and cartridge}
+%     \end{minipage}
+% \end{figure}
+
+% The \textbf{Dictet} (1957) was developed by the Dictaphone Corporation and was the first dictation machine to use magnetic tape cassettes.  
+% It used 1/4'' tape and ran at about 2.48 inches per second.
+
+% The \textbf{RCA Sound Tape Cartridge} (1958), also called Magazine Loading Cartridge or Sound Tape, used 1/4'' magnetic tape running at 3.75 ips.  
+% It aimed to bring reel-to-reel quality to a convenient cartridge. A similar design was later popularized by Philips with the compact cassette (1963).  
+% The RCA system ceased production by 1964 due to slow machine manufacture and licensing challenges for prerecorded music.
+
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[b]{0.3\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 13.png}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[b]{0.2\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 14.png}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[b]{0.35\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 15.png}
+%     \end{minipage}
+%     \caption{Dictet cassette (left) and RCA Sound Tape Cartridge (right) in size comparison with compact cassette (center)}
+% \end{figure}
+
+% The \textbf{Minifon Attaché} (1959) was a miniature tape recorder using a tape cartridge. Developed by Protona GmbH in Hamburg. The Attaché was the first all-transistor recorder developed Minifon and contained a 4-stage amplifier on a printed circuit board. The Minifon Attaché was in production until the end of the Minifon product line in 1967.
+
+% Similar to an 8-track tape, the \textbf{Nab Cart Tape} (1959) is a 4-track radio station cart, also known as Fidelipac. NAB cart tapes were introduced by Collins Radio. This particular cart was used by WBNS radio station in Columbus, OH in the 1980’s. This was a working cart at the radio station prior to digital file formats being implemented. Each cart had one song and had a number shown at the end of each one. To play a particular song, all you had to know is the correct cart number so that it could be pulled for air play. Despite looking like an 8-track tape, it does not play in an 8-track player without some modifications. The magnetic tape itself could be transferred into an old 8-track case and be made to play on an 8-track machine. The main difference in 4-track cartridge design from 8-tracks is that 4-tracks lack a built-in pinch roller which would grip and help move the tape; a hole is left in the cartridge for a pinch roller to be inserted from inside the 4-track player itself.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[c]{0.3\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 16.png}
+%         \caption{Protona Minifon Attaché}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[c]{0.25\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 17.png}
+%         \caption{Minifon tape cartridge}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[c]{0.25\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 18.png}
+%         \caption{NAB cart (Fidelipac)}
+%     \end{minipage}
+% \end{figure}
+
+% The \textbf{FI-CORD} (1960) was a high quality portable reel tape recorder produced in the early 60s by Fidelity Recording in Switzerland.  
+% The tape had a diameter of 2'' and could record for 25 minutes.  
+% The tape ran at 7.5 or 1 7/8 ips. It was also known as the “spy recorder” of the early 1960s, since it had a detachable speaker that could be taken off the recorder for covert recording.  
+% Due to its small size, it also worked well for mailing.
+
+% The \textbf{Channel Master 6546} (1961), also known as the Sanyo Micro-Pack 35, was basically a dictation machine.  
+% It was a highly superior recorder that required its own reel-to-reel monaural tape made by the company.  
+% That basically means that instead of the reels being side by side like a normal compact cassette tape, these are on top of each other.  
+% The tape linked diagonally between the two reels as you can see in the picture.  
+% The recorder had a speed control which gave the user infinite variable speeds.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[c]{0.35\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 19.png}
+%         \caption{FI-CORD portable reel recorder (1960)}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[c]{0.3\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 20.png}
+%         \caption{Channel Master 6546 / Sanyo Micro-Pack 35 (1961)}
+%     \end{minipage}
+% \end{figure}
+
+% The \textbf{Orrtronics Tapette} (1961) was a company that made a background music system based on the original Echo-matic cartridge.  
+% Very similar to (and the predecessor of) the 8-Track tape, it was actually better-sounding but commercially unsuccessful, since no record companies were interested in the format.  
+% As a result, it went nowhere and was discontinued.
+
+% The \textbf{Echo-Matic II} (1962) was invented by Bernard Cousino (who also invented the above Orrtronic Tapette along with John Herbert Orr).  
+% It was a two-track endless-loop magnetic tape cartridge.  
+% Anybody who loved watching the movie \textit{Big} would recognize this tape, since its most famous use was in the Zoltar fortune teller arcade machine.
+
+% \begin{figure}[H]
+%     \centering
+%     \begin{minipage}[c]{0.35\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 21.png}
+%         \caption{Orrtronic Tapette (1961)}
+%     \end{minipage}
+%     \hspace{1cm}
+%     \begin{minipage}[c]{0.35\linewidth}
+%         \centering
+%         \includegraphics[width=\linewidth]{Tape history 22.png}
+%         \caption{Echo-Matic II (1962)}
+%     \end{minipage}
+% \end{figure}
+
+% Continue from slide 18/90 of "DAAP-07_audio_restoration_part_1.pdf"
+
+\subsection{Formats}
+Over the years, different \textbf{tape formats} have been developed to meet various professional and consumer recording needs. 
+These formats vary by tape width, type, and intended application.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccc}
+\toprule
+\textbf{Inches} & \textbf{Type} & \textbf{Use} \\
+\midrule
+2 & Open reel & Professional \\
+1 & Open reel & Professional \\
+1/2 & Cassette & Professional \\
+1/4 & Open reel & Professional \\
+1/4 & Open reel & Semi-Professional \\
+1/4 & Cassette & Stereo 8 cartridges \\
+1/4 & Cassette & Elcaset \\
+1/4 & Cassette & Compact cassette \\
+\bottomrule
+\end{tabular}
+\caption{Dimensions, type and use of magnetic tape}
+\end{table}
+
+Magnetic tapes are also classified into \textbf{categories} according to the composition of their magnetic coating. 
+Each category offers different performance levels in terms of frequency response, noise floor, and durability, and is associated with specific inventors or manufacturers.
+
+\begin{table}[H]
+\centering
+\begin{tabular}{ccc}
+\toprule
+\textbf{Category} & \textbf{Type of tape} & \textbf{Inventor} \\
+\midrule
+IEC1 & Iron oxide (normal) & BASF \\
+IEC2 & Chrome bioxide / Chrome-equivalents (high) & BASF \\
+IEC3 & Double layer Chrome Iron & SONY \\
+IEC4 & Metal & TDK \\
+\bottomrule
+\end{tabular}
+\caption{IEC categories of magnetic tape}
+\end{table}
+
+\subsection{Tape recording}
+In tape recording, several parameters influence the sound quality, storage capacity, and compatibility between machines.
+The \textbf{tape speed} was initially set at 76 cm/s, but was later reduced to fractions of that value (like 38 cm/s, 19 cm/s, 9.5 cm/s, and 4.75 cm/s) to save tape and adapt to different recording needs.
+The \textbf{tape size} could be as small as 1/4 inch (i.e. 6.3 mm) for one or two tracks.  
+The number of tracks was often proportional to the tape size: for example, tapes up to 2 inches (50.4 mm) could accommodate 16 tracks.
+Different \textbf{types of equalization} were used depending on the standard adopted.  
+In Europe, the CCIR standard was common, while in the United States the NAB standard prevailed.
+Finally, various \textbf{coding systems} were developed to improve sound quality and reduce noise.  
+Among the most notable were the Dolby and DBX systems.
+
+\subsubsection{Recording process}
+Magnetic tapes are made of a \textbf{polyester film} (Mylar\textregistered) coated with a mix of magnetic pigment suspended within a polymer binder.
+The tape post-processing phases include \textbf{drying}, \textbf{smoothing} to minimize friction, \textbf{cutting} and \textbf{packaging} in either open reel or cassette format.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Tape structure.png}
+    \caption{Tape structure}
+\end{figure}
+
+The \textbf{magnetization process} begins with magnetic dipoles in a disordered state, each oriented in random directions.
+When the material is placed in an \textbf{external magnetic field} $\underline{\mathrm{B}}_0$, the \textbf{dipoles tend to align} either parallel or antiparallel to the field.
+A slight excess of dipoles aligns parallel to $\underline{\mathrm{B}}_0$, resulting in a \textbf{net magnetization} $\underline{\mathrm{M}}$.
+Each dipole undergoes a precessional motion around the direction of $\underline{\mathrm{B}}_0$, forming the basis for magnetic information storage.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.6\linewidth]{Magnetization process.png}
+    \caption{Magnetization process}
+\end{figure}
+
+In \textbf{magnetic tape recording}, the tape passes in contact with a \textbf{magnetic head} that contains a narrow iron gap.  
+An \textbf{electrical signal}, converted into a current, flows through a \textbf{coil wound} around the magnetic core.  
+This current generates a magnetic field across the \textbf{gap}, which \textbf{magnetizes the emulsion coating} on the moving tape.  
+The magnetic domains on the tape are oriented according to the polarity and strength of the applied field, thus \textbf{encoding the signal}.  
+The gap size, core material and winding geometry are designed to optimize recording fidelity, reduce losses and ensure consistent magnetization along the tape surface.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{Magnetic tape recording.png}
+    \caption{Magnetic tape recording process}
+\end{figure}
+
+When an audio signal is recorded on magnetic tape, its \textbf{waveform} is converted into a pattern of \textbf{varying magnetic flux} along the tape's surface.  
+The amplitude and polarity of the original signal determine the strength and direction of the magnetization in successive regions of the tape.  
+These alternating magnetized domains create a corresponding distribution of magnetic field lines, which are stored permanently until playback.  
+During playback, the variations in magnetic flux induce a voltage in the read head, reconstructing the original signal.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{Tape waveform.png}
+    \caption{Recorded waveform and corresponding distribution of magnetic flux}
+\end{figure}
+
+When a magnetic material is subjected to an increasing \textbf{magnetic field} $H$, the \textbf{residual magnetization} $B_r$ changes according to its characteristic \textbf{magnetization curve}.  
+The maximum achievable magnetization is determined by the intrinsic \textbf{magnetic properties} of the oxide used on the tape, while the minimum level depends on the grain size of the \textbf{oxide particles}: smaller grains generally result in a higher minimal magnetization.  
+If the \textbf{polymer binder concentration} is insufficient (often due to deposition defects) portions of the tape may fail to retain proper magnetization, leading to amplitude modulation noise (i.e. dropouts).
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Magnetization curve.png}
+    \end{minipage}
+    % \hfill
+    \hspace{1.5cm}
+    \begin{minipage}[c]{0.4\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Tape distortion.png}
+    \end{minipage}
+    \caption{Magnetization curve (left), distortion in magnetic tape (right)}
+\end{figure}
+
+
+\subsubsection{Distortion}
+\textbf{Distortion} in magnetic tape recording arises when the signal drives the magnetic material into the \textbf{non-linear region} of the \textbf{magnetization curve}.
+In this regime, the relationship between the applied field $H$ and the resulting magnetization $B_r$ deviates from proportionality, causing the output magnetic pattern to differ from the input waveform. 
+This non-linearity introduces \textbf{harmonic components} and alters the original waveform, resulting in an \textbf{audible change} in the recorded sound.
+
+\subsubsection{Bias}
+To minimize non-linear distortion during magnetic recording, a \textbf{high-frequency bias signal} is added to the audio signal. 
+This bias signal, typically between 50 and 400 kHz depending on the oxide used, pre-magnetizes the tape so that the combined waveform operates in the linear region of the magnetization curve. 
+By shifting the operating point away from the origin, which is where significant non-linearity occurs, the process ensures more accurate waveform reproduction and reduces harmonic distortion.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.25\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Tape bias.png}
+    \end{minipage}
+    \hspace{1.5cm}
+    \begin{minipage}[c]{0.25\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Biased magnetization curve.png}
+    \end{minipage}
+    \caption{Bias in magnetic tape to avoid NL distortion (left), magnetization curve in presence of bias (right)}
+\end{figure}
+
+In the presence of a bias signal, the relationship between residual magnetization $B_r$ and applied magnetic field $H$ becomes more linear around the operating region. 
+The bias effectively shifts the working point of the magnetic material away from the highly non-linear section of its magnetization curve, reducing distortion and improving fidelity in the recorded signal.
+
+\subsubsection{Bandwidth}
+The \textbf{maximum recordable frequency} $F$ of a tape recorder can be estimated from the following simple relation:
+
+\[
+\begin{cases}
+v: & \text{tape speed [m/s]} \\
+L: & \text{size of magnetic head gap [m]}
+\end{cases}
+\quad \Rightarrow \quad
+F = \frac{v}{L}
+\]
+
+For a typical professional tape recorder operating at a speed of 19 cm/s with a gap of 9.5 $\mu$m, the maximum achievable bandwidth is approximately 18 kHz.  
+In the case of compact cassettes running at 4.75 cm/s with a gap size of 2 $\mu$m, achieving a frequency response within $\pm$ 2 dB from 40 Hz to 15 kHz requires doubling the tape speed.
+
+\subsubsection{Dynamic range}
+The \textbf{dynamic range} of magnetic tape depends on tape width, number of tracks, tape speed and formulation:
+
+\begin{table}[H]
+\centering
+\begin{tabular}{cccc}
+\toprule
+\textbf{Type of tape} & \textbf{No. of tracks} & \textbf{Speed (cm/s)} & \textbf{Dynamic range (dB)} \\
+\midrule
+1/4 & 2 & 38   & 60 \\
+1/4 & 2 & 19   & 54 \\
+1/4 & 2 & 9.5  & 48 \\
+1/4 & 2 & 4.75 & 42 \\
+1/8 Fe per CC & 4 & 4.75 & 40 \\
+1/8 Fe super CC & 4 & 4.75 & 52 \\
+1/8 Cr per CC & 4 & 4.75 & 54 \\
+1/8 Cr super CC & 4 & 4.75 & 58 \\
+\bottomrule
+\end{tabular}
+\caption{Dynamic range for various magnetic tape formats: CD (90 dB), vinyl record (64 dB), orchestra of 75 elements (115 dB)}
+\end{table}
+
+\subsubsection{Dolby}
+Proposed by R. Dolby in 1983, this coding system is designed to \textbf{reduce wideband noise} (i.e. hiss).
+The principle is similar to the magnification of high frequencies in RIAA equalization for LP records, except that the magnification is inversely proportional to the level of the recorded sound.
+For loud sounds with a high Signal-to-Noise Ratio (SNR), noise reduction is unnecessary and may cause distortion and loss of fidelity.
+\textbf{Dolby B} coding increases high frequencies during the recording phase by up to 10 dB for the weakest sounds, then applies an equivalent reduction during playback.
+\textbf{Dolby C} consists of two cascaded Dolby~B systems, achieving a reduction in white noise of about 20 dB.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Dolby B.png}
+    \end{minipage}
+    % \hfill
+    \hspace{1.5cm}
+    \begin{minipage}[c]{0.25\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Dolby C.png}
+    \end{minipage}
+    \caption{Dolby B (left) and Dolby C (right): output level (dB) vs frequency (Hz)}
+\end{figure}
+
+\subsubsection{DBX compressor/expander}
+The \textbf{dynamic range} of a recording system is always limited compared with the one of the \textbf{source}.
+Orchestral music can span well above 90 dB (from \textit{pppp} to \textit{ffff} dynamics), whereas a vinyl record or a magnetic tape typically remains within about 50 dB.
+The DBX process tackles this gap by \textbf{companding}: the signal is \textbf{compressed} during recording and \textbf{expanded} during playback to restore its original range.
+It is an \textbf{instantaneous} and \textbf{non-linear} system that does not rely on long time constants.
+A crucial consequence is that \textbf{noise} is expanded \textbf{together with the signal}, so the effectiveness depends on maintaining a high signal level into the expander and on controlling noise introduced between the two stages.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{DBX.png}
+    \caption{DBX coding system: compression and expansion}
+\end{figure}
+
+\subsubsection{Impulse noise}
+This type of disturbance can arise from \textbf{local warping} due to thermal or mechanical effects.  
+It differs from scratches on vinyl records because it produces no after-oscillations, has a smaller amplitude and exhibits a critical phase of much longer duration.  
+Such noise alters the spectral content at high frequencies, making it audible even when its magnitude is relatively small.  
+As with scratch removal in records, restoration requires reconstructing the lost samples by interpolating from the surrounding unaffected portions of the signal.
+
+\subsubsection{Degradation causes}
+Tapes can degrade over time due to several factors.  
+The \textbf{binder} that holds the magnetic particles can deteriorate, while the \textbf{lubricant} may be lost, increasing friction and wear.  
+\textbf{Magnetic particles} themselves can become unstable, leading to loss of signal integrity.  
+Physical deformation of the \textbf{substrate}, known as warping, may also occur.  
+Another common issue is \textbf{print-through}, where faint echoes of recorded audio are imprinted onto adjacent layers of tape.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Impulse noise.png}
+    \end{minipage}
+    \hspace{0.4cm}
+    \begin{minipage}[c]{0.3\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Print-through.png}
+    \end{minipage}
+    \caption{Impulse noise in tapes (left), visualisation of print-through degradation in tapes (right)}
+\end{figure}
+
+\textbf{Print-through} is an undesired magnetic transfer from one portion of the tape to the next wound layer in the same reel.  
+It can manifest as an \textit{echo} of a previous recording segment or as a \textit{precursor} of the following one, both at very low levels (i.e. 50-60 dB lower).  
+The effect becomes more pronounced with higher temperatures, longer contact durations and thinner tapes.  
+It can be reduced by periodically fast forwarding or rewinding the tape.  
+Print-through is exacerbated by magnetic fields and is more noticeable at lower frequencies.
+
+\subsection{Phonographs}
+
+% \subsubsection{History of phonographs (\textit{optional})}
+
+\subsubsection{Magnetic cartridge}
+A cartridge is an \textbf{electromechanical transducer} used to play phonograph records, operating according to \textbf{Faraday’s law} of electromagnetic induction.  
+Two main types exist: the \textbf{Moving Magnet (MM)} cartridge, which typically provides an output voltage of about 5 mV, and the \textbf{Moving Coil (MC)} cartridge, which produces around 0.3 mV.  
+In MM designs, the magnet is attached to the cantilever and moves within fixed coils, while in MC designs the coils move relative to a fixed magnet.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Cartridge.png}
+    \end{minipage}
+    \hspace{1.5cm}
+    \begin{minipage}[c]{0.25\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Cartridge 2.png}
+    \end{minipage}
+    \caption{Moving Magnet (MM, left) and Moving Coil (MC, right) cartridges}
+\end{figure}
+
+\subsubsection{Stereo recording}
+For backward compatibility, \textbf{stereo records} store the two audio channels along two grooves cut at 45° angles to the vertical.  
+Older mono players effectively read the sum of the two channels, preserving \textbf{compatibility} with mono recordings.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{Stereo recording.png}
+    \includegraphics[width=0.45\linewidth]{Stereo recording 2.png}
+    \caption{Stereo recording in phonographs: groove displacement scheme (left) and photo (right)}
+\end{figure}
+
+Mathematically, the relation between the left/right channel signals $(x, y)$ and the groove displacements $(a, b)$ is a \textbf{rotation} by 45°:
+
+\[
+\begin{bmatrix} a \\[5pt] b \end{bmatrix}
+=
+\begin{bmatrix}
+\cos 45^\circ & \sin 45^\circ \\[5pt]
+-\sin 45^\circ & \cos 45^\circ
+\end{bmatrix}
+\begin{bmatrix} x \\[5pt] y \end{bmatrix}
+=
+\begin{bmatrix}
+\frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}} \\[5pt]
+-\frac{1}{\sqrt{2}} & \frac{1}{\sqrt{2}}
+\end{bmatrix}
+\begin{bmatrix} x \\[5pt] y \end{bmatrix}
+\]
+
+\subsubsection{Degradation causes}
+\textbf{Surface wear} in phonograph records is mainly driven by the granular nature of the base material (\textbf{ebonite} in older discs and \textbf{vinyl} in newer ones) and by mechanical scratches.
+The granular micro-structure produces a \textbf{background crackle}: a high-density sequence of low-amplitude, closely-spaced impulses that rides on the audio signal (i.e. \textbf{crackling}).
+A \textbf{scratch}, instead, is a localized defect that yields a single, high-amplitude impulse with a very steep onset followed by a short mechanical ringing of the stylus-groove system.
+During the initial sharp transient the wanted signal is effectively \textbf{obliterated}.
+In the subsequent decay, however, the disturbance is weaker and we can often approximate the observation with an \textbf{additive model}.
+This distinction motivates different restoration strategies for the two phases: robust impulse detection/suppression at the onset and more conventional denoising or interpolation during the decay.
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.35\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Phonographs degradation causes.png}
+    \end{minipage}
+    % \hfill
+    \hspace{0.4cm}
+    \begin{minipage}[c]{0.45\textwidth}
+        \centering
+        \includegraphics[width=\linewidth]{Crackling.png}
+    \end{minipage}
+    \caption{Surface wear on a phonograph record groove (left), degradation impact on the resulting sound (right)}
+\end{figure}
+
+\subsubsection{Rendering problems}
+\textbf{Rumble noise} can occur due to the motor’s vibrations that are transferred to the turntable and to its arm.
+The measurement is performed with a test record on which there is a sinusoidal signal at 1000 Hz followed by silence: the ratio between the output voltages of rumble + signal and of rumble only gives the \textbf{rumble-to-signal ratio}, which must be kept below -35 dB according to DIN regulations.
+Regarding \textbf{tangential errors}, during the recording phase, the needle always carves the grooves in a tangential fashion.
+During the playing phase, the arm follows a circular trajectory.
+Additionally, we notice that the angle difference might cause some \textbf{crosstalk} between channels.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.22\linewidth]{Turntable.png}
+    \caption{Turntable scheme}
+\end{figure}
+
+\subsection{Audio CD}
+It is an \textbf{optical} (typically read-only) \textbf{storing media} for digital audio signals.
+An agreement was found around 1980 by all major hardware providers to define a standard that accurately defined both media and related players.
+Based on this standard, an audio CD has a diameter of 120 mm, a thickness of 1.2 mm and a central hole of 15 mm in diameter (to safely lock the CD onto the axis of the motor of the CD reader).
+A sequence of \textbf{pits} are printed on the surface of a substrate of \textbf{transparent plastic material} (typically polycarbonate): this sequence carries the information.
+This surface is laminated with an extremely thin (50-100 nm) layer of reflecting material (some metal based on aluminium, silver or gold).
+On top of this thin foil is a plastic protective layer (10-30 $\mu$m thick).
+
+\begin{figure}[H]
+    \centering
+    \begin{minipage}[c]{0.5\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Audio cd 1.png}\\[0.3cm]
+        \includegraphics[width=\linewidth]{Audio cd 2.png}
+    \end{minipage}
+    \hspace{0.5cm}
+    \begin{minipage}[c]{0.25\linewidth}
+        \centering
+        \includegraphics[width=\linewidth]{Audio cd 3.png}
+    \end{minipage}
+    \caption{Audio CD: dimensions (top left), internal structure (bottom left), physical support (right)}
+\end{figure}
+
+The pit width is approximately 0.6 $\mu$m, the pit length depends on the binary sequence and the distance between two successive tracks is 1.6 $\mu$m.
+The information is hot-pressed on the disc: the track spirals out from the center of the disc toward the periphery.
+The initial portion of the spiral contains the TOC (i.e. Table Of Contents), which is read and loaded by the player as soon as the disc is inserted.
+The digital samples occupy the rest of the track, along with other information needed to localize the musical pieces and to correct errors.
+
+Regarding the \textbf{data reading}, audio CD playback uses \textbf{laser-based} reading with no physical contact.
+The laser passes through the plastic substrate and is \textbf{reflected} by the thin metallic layer that covers the pit surface.
+The pit-bearing surface is physically separated from both outer faces of the disc, so dust and surface scratches lie outside the laser \textbf{focal plane} and their effect is modest.
+In practice, features smaller than about 0.5 $\mu$m are negligible and do not introduce appreciable phase error during reading.
+CDs employ \textbf{constant-density reading}: the turntable varies its angular speed with radius (CLV): nominal values range from an initial speed of around 500 rpm near the inner radius to around 200 rpm near the outer radius.
+Robust \textbf{error correction} handles missing or damaged pits (i.e. from writing faults or scratches).
+The coding chain combines \textbf{EFM} (Eight-to-Fourteen Modulation) with \textbf{RS-PC} (Reed–Solomon Product Code).
+This scheme can correct data losses corresponding to scratches up to about 2.5 mm long (roughly 3500 bits).
+
+% \subsection{Digital Versatile Disc (DVD) (\textit{optional})}
+
+\clearpage

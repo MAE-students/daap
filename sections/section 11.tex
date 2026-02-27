@@ -1,0 +1,242 @@
+\section{Microphone Arrays: Localization of Wide-Band Sources}
+
+\subsection{Introduction}
+Let us focus on a scenario involving a single acoustic source, small or moderate reverberation, and a \textbf{wide-band source signal}.
+In this scenario, spatial filtering or parametric methods may not represent the most efficient solution.
+We will study two techniques for source localization: the \textit{Generalized Cross-Correlation} method and the \textit{Adaptive Eigenvalue Decomposition} method.
+
+\subsection{Data model}
+When we consider wide-band sources, we cannot rely on the sinusoidal model.
+For simplicity, without loss of generality, we consider a pair of microphones.
+Let us define the \textbf{source} signal $s$, the \textbf{channel} response $g_k$ from source to $k$-th microphone and the microphone \textbf{additive noise} $e_k$.
+The wide-band array model describes the microphone signal $y_k$ as:
+
+\[
+y_k(n) = g_k * s \ (n) + e_k(n),
+\qquad k = 1, 2
+\]
+
+We may model the two channel (impulse) responses as follows:
+
+\[
+g_1(n) = \underbrace{\frac{1}{r_1} \delta(n - \tau_1)}_{\text{direct signal}} + \underbrace{\sum_i \alpha_i \ \delta(n - \tau_{1i})}_{\text{early reflections}},
+\qquad
+g_2(n) = \underbrace{\frac{1}{r_2} \delta(n - \tau_2)}_{\text{direct signal}} + \underbrace{\sum_i \beta_i \ \delta(n - \tau_{2i})}_{\text{early reflections}}
+\]
+
+The information about the source position is contained in the propagation delays $\tau_1$ and $\tau_2$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{Two_microphones DOA.png}
+    \caption{DOA in a two-microphones configuration with wide-band source in far-field}
+\end{figure}
+
+The source emission time is generally unknown, so we aim at estimating the \textbf{Time Difference Of Arrival (TDOA)}, also known as the time delay:
+
+\[
+\tau_{12} = \tau_2 - \tau_1
+\]
+
+Assuming that the source is in the far-field with respect to the microphone pair, the TDOA is related to the DOA through a simple trigonometric relationship:
+
+\[
+\tau_{12} = \frac{d \sin \left( \theta \right)}{c}
+\]
+
+Given an estimate $\hat{\tau}_{12}$ of the TDOA, the estimate $\hat{\theta}$ of the DOA is computed as:
+
+\[
+\hat{\theta} = \arcsin \left( \frac{\hat{\tau}_{12} \ c}{d} \right)
+\]
+
+
+The problem of DOA estimation can be brought to the \textbf{problem of estimating the TDOA} between the microphone pair.
+Different approaches can be used to estimate TDOAs.
+The first approach finds the maxima of the \textbf{cross-correlation} of the microphone signals, while the second approach identifies the \textbf{channel responses} $g_{1}$ and $g_{2}$.
+
+\subsection{TDOA estimation: Generalized Cross-Correlation (GCC)}
+We expect the two microphones to record two delayed copies of the source signal, along with some disturbs (i.e. environmental noise and reverberation).
+If the amount of noise and reverberation is low compared to the strength of the source signal, we can cross-correlate the microphone signals to estimate the TDOA.
+The \textbf{cross-correlation} of the microphone signals is given by the inverse Fourier Transform of the cross-spectrum:
+
+\[
+R_{12}(t) = \frac{1}{2\pi} \int_{-\infty}^{\infty} X_{1}(\omega) X_{2}^{*}(\omega) \ e^{j\omega t} \ d\omega
+\]
+
+The TDOA estimation $\hat{\tau}_{12}$ is the time-lag that \textbf{maximizes the cross-correlation} function, within a valid time interval:
+
+\[
+\hat{\tau}_{12} =\underset{\tau \in \mathcal{D}}{\mathrm{arg \ max}} \left( R_{12}(\tau) \right), 
+\qquad 
+\mathcal{D} = \left[ -\frac{d}{c}, \frac{d}{c} \right]
+\]
+
+The \textbf{problem} is that, if the signal presents some \textbf{periodicities} (i.e. it is somehow harmonic), the cross-correlation function will present peaks that arise from the auto-correlation of the signal.
+These peaks may overcome the searched one, leading to a wrong TDOA estimation.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{Cross-correlation and GCC.png}
+    \caption{TDOA estimation: comparison between cross-correlation (blue) and generalized cross-correlation (orange)}
+\end{figure}
+
+Due to the impulsive behaviour of the auto-correlation function, the overlap is minimized for white signals.
+The signal spectrum can be \textbf{artificially whitened} by introducing a weight function in the cross-correlation function.
+We talk about \textbf{Generalized Cross-Correlation (GCC)}:
+
+\[
+R_{12}(t) = \frac{1}{2\pi} \int_{-\infty}^{\infty} \psi_{12}(\omega) X_{1}(\omega) X_{2}^{*}(\omega) \ e^{j\omega t} \ d\omega
+\]
+
+\[
+\psi_{12}(\omega) = \frac{1}{\abs{X_{1}(\omega) X_{2}^{*}(\omega)}}: \ \text{PHAT (Phase Transform) function}
+\]
+
+\clearpage
+
+\subsection{TDOA estimation: Adaptive Eigenvalue Decomposition (AED)}
+An alternative approach for the TDOA estimation starts from the identification of the channel responses $g_k$.
+The first peak in the impulse responses is related to the \textbf{direct path} from the source to the microphones, while we exclude the reverberant components (i.e. early reflections and reverberation tail).
+We recover the TDOA as the difference between the time-lags related to the direct paths at the two microphones.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{AED impulse response.png}
+    \caption{Example of channel response $g_k(n)$}
+\end{figure}
+
+\textbf{Adaptive Eigenvalue Decomposition (AED)} is based on the following result, valid in a noise-free scenario:
+
+\[
+y_{1}(n) * g_{2}(n) = s(n) * g_{1}(n) * g_{2}(n) = y_{2}(n) * g_{1}(n)
+\]
+
+This expression can be approximated considering $M$-long frames of the microphone signal:
+
+\[
+\underline{\mathrm{y}}_{k}(n) =
+\begin{bmatrix}
+y_{k}(n) \\
+y_{k}(n-1) \\
+\vdots \\
+y_{k}(n-M+1)
+\end{bmatrix},
+\qquad
+\underline{\mathrm{g}}_{k} =
+\begin{bmatrix}
+g_{k}(0) \\
+g_{k}(1) \\
+\vdots \\
+g_{k}(M-1)
+\end{bmatrix},
+\qquad
+k=1,2
+\]
+
+\[
+\underline{\mathrm{y}}_{1}^{T}(n) \ \underline{\mathrm{g}}_{2} = \underline{\mathrm{y}}_{2}^{T}(n) \ \underline{\mathrm{g}}_{1}
+\quad \Rightarrow \quad
+\underline{\mathrm{y}}_{1}^{T}(n) \ \underline{\mathrm{g}}_{2} - \underline{\mathrm{y}}_{2}^{T}(n) \ \underline{\mathrm{g}}_{1} = 0
+\]
+
+We can rewrite the previous expression in a statistical fashion.
+We define the following:
+
+\[
+\left[ \mathrm{R} \right] =
+\begin{bmatrix}
+E\left\{ \underline{\mathrm{y}}_{1}(n) \ \underline{\mathrm{y}}_{1}^{T}(n) \right\} &
+E\left\{ \underline{\mathrm{y}}_{1}(n) \ \underline{\mathrm{y}}_{2}^{T}(n) \right\} \\[8pt]
+E\left\{ \underline{\mathrm{y}}_{2}(n) \ \underline{\mathrm{y}}_{1}^{T}(n) \right\} &
+E\left\{ \underline{\mathrm{y}}_{2}(n) \ \underline{\mathrm{y}}_{2}^{T}(n) \right\}
+\end{bmatrix}_{2M \times 2M}: \text{covariance matrix}
+\]
+
+\[
+\underline{\mathrm{u}} =
+\begin{bmatrix}
+\underline{\mathrm{g}}_{2} \\
+-\underline{\mathrm{g}}_{1}
+\end{bmatrix}_{2M \times 1}: \text{channels vector}
+\]
+
+We readily find that:
+
+\[
+\left[ \mathrm{R} \right] \underline{\mathrm{u}} = \underline{0}_{2M}
+\]
+
+The term $\underline{\mathrm{u}}$ is the eigenvector associated to the zero-valued eigenvalue of $\mathrm{R}$.
+If the two impulse responses have no common zeros, there is a \textbf{single zero-valued eigenvalue}.
+
+The last equation is satisfied only for the true covariance matrix.
+We can only rely on an \textbf{estimate} of $\left[\mathrm{R}\right]$, thus we search for the \textbf{minimum eigenvalue}.
+The eigenvalue decomposition has complexity $\mathcal{O}\left( \left( 2M \right)^{3} \right)$ and considering that $M$ can be large (i.e. channel responses length of thousands of taps), it is convenient to perform an \textbf{iterative search}.
+
+The idea is to \textbf{minimize the norm} of the vector $\left[\mathrm{R}\right] \underline{\mathrm{u}}$.  
+We pose a constraint on the norm of $\underline{\mathrm{u}}$ to prevent the trivial solution $\underline{\mathrm{u}} = \underline{0}_{2M}$,  
+then solve the constrained minimization problem:
+
+\[
+\underline{\hat{\mathrm{u}}} = \underset{\underline{\mathrm{u}}}{\mathrm{arg \ min}} \left( \underline{\mathrm{u}}^{T}  \left[\mathrm{R}\right] \underline{\mathrm{u}}\right),
+\qquad
+\underline{\mathrm{u}}^{T} \underline{\mathrm{u}} = 1
+\]
+
+We can solve the problem using an LMS-like procedure.
+We define the error signal:
+
+\[
+e\left( n \right) = \frac{\underline{\mathrm{u}}^{T}\left( n \right) \  \underline{\mathrm{y}}\left( n \right)}{\norm{\underline{\mathrm{u}} \left( n \right)}},
+\qquad
+\underline{\mathrm{y}}\left( n \right) = 
+\begin{bmatrix}
+\underline{\mathrm{y}}_{1}^{T} \\
+\underline{\mathrm{y}}_{2}^{T}
+\end{bmatrix}
+\]
+
+It can be observed that the \textbf{MSE minimization} of $e\left( n \right)$ corresponds to the constrained minimization problem.
+The constrained LMS algorithm is:
+
+\[
+\underline{\mathrm{u}}\left( n + 1 \right) = \underline{\mathrm{u}}\left( n \right) - \mu \ e\left( n \right) \nabla e\left( n \right),
+\qquad
+\nabla e\left( n \right) = \frac{1}{\norm{\underline{\mathrm{u}} \left( n \right)}}
+\left[ 
+\underline{\mathrm{y}}\left( n \right) - e\left( n \right) \frac{\underline{\mathrm{u}}\left( n \right)}{\norm{\underline{\mathrm{u}} \left( n \right)}}
+\right]
+\]
+
+After convergence, it can be proved that:
+
+\[
+\left[ \mathrm{R} \right] \frac{\underline{\mathrm{u}}\left( \infty \right)}{\norm{\underline{\mathrm{u}}\left( \infty \right)}} =
+E \left\{ e^{2}\left( \infty \right) \right\} \frac{\underline{\mathrm{u}}\left( \infty \right)}{\norm{\underline{\mathrm{u}}\left( \infty \right)}}
+\]
+
+This confirms that the iterative algorithm converges to the correct solution:
+$E \left\{ e^{2}\left( \infty \right) \right\} $ is the smallest eigenvalue of $\left[ \mathrm{R} \right]$.
+
+We are now ready for TDOA estimation:
+
+\begin{enumerate}
+    \item extract the estimated channel responses $\hat{g}_{1}(n)$ and $\hat{g}_{2}(n)$ from $\underline{\mathrm{u}}\left( \infty \right)$
+
+    \item estimate the propagation delays as:
+
+    \[
+    \hat{\tau}_{k} = \underset{\tau}{\mathrm{arg \ max}} \left( \hat{g}_{k}\left( \tau \right) \right),
+    \qquad
+    k = 1, 2
+    \]
+
+    \item estimate the TDOA as:
+
+    \[
+    \hat{\tau}_{12} = \hat{\tau}_{2} - \hat{\tau}_{1}
+    \]
+\end{enumerate}
+
+\clearpage
