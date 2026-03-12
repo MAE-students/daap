@@ -580,4 +580,81 @@ This model is \textbf{not suited} for transients and short attacks, and is not c
 This means it is also not good for noise-like signals (noise is inharmonic and presents frequency components along the entire audible spectrum).
 In addition to that, this \textbf{system} is generally \textbf{not} an \textbf{identity} (in order to go back to the original audio, we need to retain all phase information and make no data reduction), and is computationally expensive.
 
+\subsection{Digging deeper into Filterbanks and STFT}
+Our aim is to capture the temporal evolution of the signal’s spectrum. In order to do 
+so, we need a tool that computes the “local” Fourier transform at any time.
+\[u(t) \xrightarrow{\mathcal{F}_{\text{loc}}} U(t,f)\]
+We saw two analysis tools that do that:
+\begin{itemize}
+    \item STFT, privileging the frequency over time $\rightarrow u(t)\xrightarrow{\text{STFT}} U_t(f)$
+    \item Filterbank, privileging the time over frequency $\rightarrow u(t)\xrightarrow{\text{FB}} u_f(t)$
+\end{itemize}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.3\linewidth]{images/filterbanksvsstftf.png}
+\end{figure}
+
+Modulating $h_0(n)$ by a carrier signal $e^{j 2 \pi f_k n T} = e^{j 2 \pi (k \frac{F_s}{N}) n T} = e^{j 2 \pi (k \frac{1}{NT}) n T} = e^{j 2 \pi \frac{kn}{N}}$ corresponds to shifting its frequency response by $f = f_k$ (center frequency of the $k$-th filter)
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/filterbanksstuff.png}
+\end{figure}
+
+It is through this modulation process that we build a filterbank and partition the spectrum into subbands.
+The rate of the outputs can be reduced $M$ times with no loss of information (in case of ideal frequency partition)
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/filterbanksstff2.png}
+\end{figure}
+
+\subsubsection{STFT Frame by frame processing}
+STFT is implemented (and normally interpreted) as a frame-by-frame Fourier Transform.
+
+Each frame is obtained by applying a time-shifted window $w_m(n) = w(n - m)$ to select a portion of the signal $x(n)$ near time $m$.
+We then compute the FFT of the windowed data to obtain the spectrum of the $m^{\text{th}}$ frame
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/stftstuff.png}
+\end{figure}
+
+Analysis:
+\[x(nT) \xrightarrow{\text{STFT}} X(t_i, f_k) = \sum_{n} w_a(n) x(t_i + nT) e^{-j 2 \pi f_k n T}\]
+\[X_{t_i}(f_k) = \sum_{n} w_a(n) x(i \alpha_a M_a T + nT) e^{-j 2 \pi \frac{kn}{N}}\]
+where $w_a(n)$ is the analysis window, $\alpha_a$ the corresponding overlapping factor and $M_a$ its length (in samples), $i$ is the frame index, $N$ is the DFT size and $k$ is the index of the frequency bin $f_k = \frac{k}{TN}$.
+
+The spectrum of a frame is here obtained by computing the FFT of a windowed signal, whose initial sample starts with the window (no linear phase accounting for a
+shifting window). This is done by “shifting the signal back to the origin”.
+
+Synthesis:
+\[X(t_i, f_k) \xrightarrow{\text{ISTFT}} \tilde{x}(nT)  = \sum_{n} w_s(n - t_l) \frac{1}{N} \sum_{k=0}^{N-1}X(t_l, f_k) e^{j 2 \pi f_k nT}\]
+\[\tilde{x}(nT)  = \sum_{n} w_s(n - l \alpha_s M_s) \frac{1}{N} 
+\sum_{k=0}^{N-1}X(l \alpha_s M_s T, \frac{k}{NT}) e^{j 2 \pi \frac{kn}{N}}\]
+where $w_s(n)$ is the synthesis window, $\alpha_s$ the corresponding overlapping factor and $M_s$ its length (in 
+samples), $l$ is the frame index, $N$ is the DFT size and $k$ is the index of the frequency bin.
+
+
+In Overlap and Add (OLA) processing we are  basically implementing a filterbank where the filters are a translated version of the Fourier transform of the window itself.
+This is why temporal and frequency resolution are so linked to each other.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.65\linewidth]{images/ola2.png}
+\end{figure}
+
+Using a "slimmer" notation:
+\[x(nT) \xrightarrow{\text{STFT}} X(t_i, f_k) = \sum_{n} w_a(n)x(t_i + nT)e^{-j2\pi f_k nT}\]
+
+$\begin{aligned}
+X_m(f_k) &= \sum_{n=-\infty}^{\infty} w(n)x(m + n)e^{-j2\pi f_k n N} , \quad m = i\alpha_a M_a \\
+&= \sum_{r=-\infty}^{\infty} w(r - m)x(r)e^{-j2\pi f_k(r-m)N} , \quad r \triangleq m + n \to n = r - m \\
+&= \sum_{r=-\infty}^{\infty} w(m - r)x(r)e^{j2\pi f_k(m-r)N} \quad \text{(even window)} \\
+&= \sum_{r=-\infty}^{\infty} w_{f_k}(m - r)x(r) = w_{f_k} * x(m) , \quad w_{f_k}(m) \xrightarrow{\mathcal{F}} W(f - f_k)
+\end{aligned}$
+
+$X_m$ is the DTFT of the windowed signal (window starting from sample m). 
+If we squeeze one domain, the other stretches. Its a constant area operation.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{images/filteerbankview.png}
+\end{figure}
+
 \clearpage
