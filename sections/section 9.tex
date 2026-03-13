@@ -94,8 +94,8 @@ The filter $W(z)$ is iteratively adjusted to minimize this error, effectively le
 \subsubsection{Example}
 
 Let us consider an example: two people (Jane and Jim) are speaking simultaneously in a reverberant room.
-Jane is equipped with a wearable microphone that directly captures her voice, producing the signal $u$.
-An environmental microphone captures the overall acoustic environment, which includes contributions from Jane's reverberated voice, Jim's speech $v$ and ambient noise $b$.
+Jane is equipped with a wearable microphone that directly captures her voice, producing the signal $u(n)$.
+An environmental microphone captures the overall acoustic environment, which includes contributions from Jane's reverberated voice, Jim's speech $v(n)$ and ambient noise $b(n)$.
 Jane’s voice reaches the environmental microphone after passing through a room impulse response $H(z)$.
 
 \begin{figure}[H]
@@ -106,8 +106,8 @@ Jane’s voice reaches the environmental microphone after passing through a room
 
 The goal is to isolate and estimate Jim’s speech removing both the echo of Jane’s voice and the background noise from the environmental microphone signal: we employ an adaptive echo cancellation scheme.
 Jane's voice also reaches the environmental microphone, after the convolution with the room response $H(z)$.
-This reverberated signal is then summed with Jim’s speech $v$ and noise $b$ to form the observed signal $d$.
-The adaptive filter $W(z)$ allows to estimate the contribution of Jane’s voice $y$, which is subtracted from the observed signal $d$, yielding the error signal $e(n) = d(n) - y(n)$.
+This reverberated signal is then summed with Jim’s speech $v(n)$ and noise $b(n)$ to form the observed signal $d(n)$.
+The adaptive filter $W(z)$ allows to estimate the contribution of Jane’s voice $y(n)$, which is subtracted from the observed signal $d(n)$, yielding the error signal $e(n) = d(n) - y(n)$.
 The goal is to adapt $W(z)$ such that $y(n)$ closely matches Jane's voice after the room reverberation $H(z)$, minimizing $e(n)$ and leaving primarily Jim’s speech and noise.
 This structure allows for dynamic estimation of the echo path and effective suppression of reverberated interference.
 
