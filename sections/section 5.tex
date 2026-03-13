@@ -44,7 +44,7 @@ We could apply subsampling (of factor 2) to obtain half samples and define a new
 It is difficult to define time-scaling or pitch-scaling for a general signal because \textbf{time and frequency are not independent}.
 It is easier to refer to a \textbf{parametric model} of audio signals.
 
-Let us consider a \textbf{sinusoidal model}: the signal is a sum of \(I\) sinusoids, each one with time-varying amplitude \(A_i\) and (angular) frequency \(\omega_i\).
+Hereinafter we consider a \textbf{sinusoidal model}: the signal is a sum of \(I\) sinusoids, each one with time-varying amplitude \(A_i\) and (angular) frequency \(\omega_i\).
 
 \[
 x(t) = \sum_{i=1}^{I(t)} A_i(t) \ e^{j\phi_i(t)}, \qquad \phi_i(t) = \int_{-\infty}^{t} \omega_i(\tau) \ d\tau
@@ -54,11 +54,14 @@ It makes it easier to understand both temporal and frequency evolution.
 
 \subsubsection{Ideal time scaling}
 We want to obtain a new signal \(x'\) in the \textbf{scaled time axis} \(t'\).
-We define a \textbf{time warping function} \(T\) to map the original function into the new one:
+We define a \textbf{time warping function} \(T\) to map the original function into the new one (desired time-scaled signal):
 
 \[
 t \longleftarrow t'=T(t) \quad \Rightarrow \quad x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \omega_i\left(T^{-1}(\tau)\right) \ d\tau
 \]
+
+The time warping function $T(t)$ specifies a mapping between the time in the original signal $(t)$ and the 
+time in the modified signal $(t’=T(t))$.
 
 The instantaneous amplitude of the \textit{i}-th sinusoid at time \(t'\) in the time-scaled signal corresponds to the instantaneous amplitude in the original signal at time \(t = T^{–1}(t')\).
 
@@ -71,7 +74,7 @@ The instantaneous amplitude of the \textit{i}-th sinusoid at time \(t'\) in the 
 We remind that in a sinusoidal model we directly control amplitude and frequency (but not phase).
 
 \subsubsection{Ideal pitch scaling}
-We want now to obtain a new signal \(x'\) with a new phase \(\phi'\), which takes into account the frequency modifications for each time instant thanks to the \textbf{pitch modification factor} \(\alpha\):
+We want now to obtain a new signal \(x'\) with a new phase \(\phi'\), which takes into account the frequency modifications for each time instant thanks to the \textbf{pitch modification factor} (possibly time-varying) \(\alpha(t)\):
 
 \[
 \omega_i(t) \longleftarrow \alpha(t) \omega_i(t) \quad \Rightarrow \quad x'(t') = \sum_{i=1}^{I(t')} A_i(t') \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \alpha(\tau) \omega_i(\tau) \ d\tau
@@ -106,7 +109,7 @@ The \textbf{duality principle} states that time scaling can be obtained by pitch
     \caption{Duality principle diagram}
 \end{figure}
 
-Let us consider the ideal time scaling expression:
+To prove it, let us consider the ideal time scaling expression:
 
 \[
 x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ \exp \left\{j \int_{-\infty}^{t'} \omega_i\left(T^{-1}(\tau)\right) \ d\tau\right\}
