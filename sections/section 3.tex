@@ -17,14 +17,12 @@ The goal is to perform \textbf{minimum MSE} (mean-square error) estimation of a 
 Let us consider all the signals to be complex-valued stationary zero-mean random processes.
 The \textbf{Wiener filter} \( W(z) \) is a complex-valued IIR (infinite impulse response).
 The output $y$ of a filter is a linear convolution between input $u$ and impulse response $w$:
-
 \[
 y(n) = \sum_{k=0}^{\infty} w^*(k) u(n-k)
 \]
 
 We want to get the output $y$ as similar as it can be to the desired target $d$.
 To do that, we define a MSE \textbf{cost function}, which we want to minimize in order to find the best filter \( \hat{W}(z) \):
-
 \[
 J = E\left\{e(n)e^*(n)\right\} = E\{|e(n)|^2\}, \quad e(n) = d(n) - y(n) \quad  \Rightarrow \quad \hat{W}(z) = \arg \min_{W(z)} J
 \]
@@ -33,20 +31,18 @@ J = E\left\{e(n)e^*(n)\right\} = E\{|e(n)|^2\}, \quad e(n) = d(n) - y(n) \quad  
 
 In order to minimize the cost function, we are interested in computing the \textbf{gradient of the cost function}.
 We express the filter coefficients as complex values:
-
 \[
 w(k) = a(k) + jb(k), \qquad k = 0, 1, 2, \cdots
 \]
 
 We define the (complex) gradient operator and apply it to the cost function \( J \):
-
 \[
 \nabla_k = \frac{\partial}{\partial a_k} + j \frac{\partial}{\partial b_k}
 \quad \Rightarrow \quad
 \nabla_k J = E\left\{ \frac{\partial e(n)}{\partial a_k} e^*(n) + \frac{\partial e^*(n)}{\partial a_k} e(n) + j\frac{\partial e(n)}{\partial b_k} e^*(n) + j\frac{\partial e^*(n)}{\partial b_k} e(n) \right\}
 \]
 
-Finding the \textbf{minimum} means setting the \textbf{gradient to zero}:
+Finding the \textbf{minimum} of the cost function means setting the \textbf{gradient to zero}:
 \[
 \nabla_k J = 0, \qquad \forall k = 0, 1, 2, \cdots
 \]
@@ -54,7 +50,6 @@ Finding the \textbf{minimum} means setting the \textbf{gradient to zero}:
 % \clearpage
 
 The first partial derivative becomes:
-
 \[
 \frac{\partial e(n)}{\partial a(k)} = \frac{\partial}{\partial a(k)} \left[d(n) - \underbrace{\sum_{l=0}^{+\infty}w^*(l) u(n-l)}_{y(n)} \right] = \frac{\partial}{\partial a(k)} \left[d(n) - \sum_{l=0}^{+\infty} \underbrace{\left[a(l)-jb(l)\right]}_{w^*(l)} u(n-l)\right] =
 \]
@@ -69,7 +64,6 @@ Similar computation occurs for the remaining partial derivatives:
 \]
 
 The cost function gradient becomes: 
-
 \[
 \nabla_k J = -2 E\{u(n-k) e^*(n)\}
 \]
@@ -79,20 +73,17 @@ The cost function gradient becomes:
 We can now specify the operating conditions required for minimizing the cost function.
 Let us define the \textbf{optimal estimation error} \( e_o(n) \) as the estimation error we get when the filter operates in its optimum conditions (i.e. the cost function has reached the minimum).
 We have minimum cost function when its gradient is zero:
-
 \[
 \nabla_k J = 0 \quad \Rightarrow \quad E\{u(n-k)e_o^*(n)\} = 0, \quad \forall k = 0, 1, 2, \cdots
 \]
 
 The \textbf{orthogonality principle} holds: the estimation error is orthogonal to the input samples that enter into the estimation of the desired response.
 We analyse the correlation between filter output \( y \) and estimation error \( e \):
-
 \[
 E\left\{y(n) e^*(n)\right\} = E\left\{ \sum_{k=0}^\infty w^*(k) u(n-k) \ e^*(n) \right\} = \sum_{k=0}^\infty w^*(k) E\{u(n-k) e^*(n)\}
 \]
 
 Let us define the output \( y_o \) we get when the filter operates in its optimum conditions, and for the orthogonality principle we have:
-
 \[
 E\{y_o(n) e_o^*(n)\}
 = \sum_{k=0}^\infty w^*(k) \ \cancel{E\{u(n-k) e_o^*(n)\}}
@@ -110,29 +101,24 @@ This \textbf{corollary} states that, when the filter operates in its optimum con
 \subsection{Normalized MSE}
 
 Let us define the different signals we have in optimum conditions:
-
 \[
 \hat{d}(n) = y_o(n): \quad \text{estimate of the desired response } d, \qquad J_\text{min} = E\left\{\abs{e_o(n)}^2\right\}: \quad \text{minimum MSE}
 \]
-
 \[
 \sigma_d^2 = E\left\{\abs{d(n)}^2\right\}: \quad \text{variance of } d, \qquad \sigma_{\hat{d}}^2 = E\left\{\abs{\hat{d}(n)}^2\right\}: \quad \text{variance of } \hat{d}
 \]
 
 In this condition, we can verify that:
-
 \[
 e_o(n) = d(n) - y_o(n) \quad \Rightarrow \quad d(n) = \hat{d}(n) + J_\text{min}
 \]
 
 Applying the corollary of the orthogonality principle, we define the \textbf{normalized MSE} \( \epsilon \):
-
 \[
 \sigma_d^2 = \sigma_{\hat{d}}^2 + J_\text{min} \quad \Rightarrow \quad J_\text{min} = \sigma_d^2 - \sigma_{\hat{d}}^2 \quad \Rightarrow \quad \epsilon = \frac{J_\text{min}}{\sigma_d^2} = 1 - \frac{\sigma_{\hat{d}}^2}{\sigma_d^2}, \quad 0 \leq \epsilon \leq 1
 \]
 
 We may notice two extreme cases:
-
 \[
 \begin{cases}
 \epsilon = 0 \quad \Leftrightarrow \quad \sigma_{\hat{d}}^2 = \sigma_d^2 & \text{complete agreement between \(\hat{d}\) and \(d\)}\\[3pt]
@@ -144,19 +130,16 @@ We may notice two extreme cases:
 
 The principle of orthogonality specifies the \textbf{necessary and sufficient condition} for the optimum operation of the Wiener filter.
 The filter coefficients in the optimum conditions are:
-
 \[
 w_o(0), w_o(1), w_o(2), \cdots \quad \Rightarrow \quad  E\left\{ u(n-k) \underbrace{\left[ d^*(n) - \overbrace{\sum_{i=0}^\infty w_o(i) u^*(n-i)}^{y_o^*(n)} \right]}_{e_o^*(n)} \right\} = 0, \qquad k = 0, 1, 2, \cdots
 \]
 
 Expanding the equation and rearranging the terms we get:
-
 \[
 \sum_{i=0}^{+\infty} w_o(i) \underbrace{E \left\{u(n-k) u^*(n-i)\right\}}_{\text{autocorrelation of the input} \ r(i-k)} = \underbrace{E \left\{u(n-k)d^*(n)\right\}}_{\text{cross-correlation of input and desired response} \ p(-k)}
 \]
 
 We obtain the \textbf{Wiener-Hopf equations}, which describe a linear system to find the optimal Wiener filter coefficients:
-
 \[
 \sum_{i=0}^\infty w_o(i) r(i-k) = p(-k), \qquad k = 0, 1, 2, \cdots
 \]
@@ -165,7 +148,6 @@ We obtain the \textbf{Wiener-Hopf equations}, which describe a linear system to 
 
 The Wiener-Hopf equations define an infinite set of equations, whose solution is the optimal set of \textbf{Wiener filter coefficients} \( w_o(k) \).
 We may compute an approximate solution truncating the summation, defining a FIR filter with \( M \) taps:
-
 \[
 \sum_{i=0}^{M-1} w_o(i) r(i-k) = p(-k), \qquad k = 0, 1, \cdots, M-1
 \]
@@ -176,7 +158,6 @@ The choice for \( M \) depends on the application (i.e. order of the linear syst
 \subsection{Matrix formulation}
 
 We extend the definitions to \(M\)-samples signals:
-
 \[
 \underline{\mathrm{u}}(n) = [u_o(0), u_o(1), \cdots, u_o(M-1)]^T: \quad \text{input vector}
 \]
@@ -199,16 +180,14 @@ r^*(M-1) & r^*(M-2) & \cdots & r(0)
 \]
 
 The Wiener-Hopf equations can be rewritten in \textbf{matrix form}, and the solution is found by matrix inversion:
-
 \[
 [\mathrm{R}] \underline{\mathrm{w}}_o = \underline{\mathrm{p}} \quad \Rightarrow \quad \underline{\mathrm{w}}_o = [\mathrm{R}]^{-1} \underline{\mathrm{p}}
 \]
 
 \subsection{Error performance surface}
 
-The Wiener-Hopf equation can also be derived by examining the cost function \( J \) dependence on the filter coefficients \(w(k)\).
+The Wiener-Hopf equation can also be derived by examining the cost function \( J \) dependence on the filter coefficients \(w(k)\) (tap weights).
 We first rewrite the estimation error as:
-
 \[
 e(n) = d(n) - y(n) = d(n) - \sum_{k=0}^{M-1} w^*(k) u(n-k)
 \]
@@ -231,7 +210,6 @@ So, we may visualise the cost function dependency on the filter coefficients \(w
 
 The most important aspect is that the error surface exhibits a \textbf{unique minimum}.
 The gradient becomes:
-
 \[
 \nabla_k J = \frac{\partial J}{\partial a(k)} + j\frac{\partial J}{\partial b(k)} = -2p(-k) + 2 \sum_{i=0}^{M-1} w(i) r(i-k)
 \]
@@ -247,7 +225,6 @@ As expected, this system of equation coincides with the Wiener-Hopf equations we
 
 We are now interested in computing the \textbf{minimum cost value} \(J_\text{min}\).
 In order to do that, we need to evaluate the variance \(\sigma_{\hat{d}}^2\) of the estimation:
-
 \[
 \hat{d}(n) = \sum_{k=0}^{M-1} w_o^*(k) u(n-k) = \underline{\mathrm{w}}_o^H \underline{\mathrm{u}}(n)
 \quad \Rightarrow \quad
@@ -256,7 +233,6 @@ In order to do that, we need to evaluate the variance \(\sigma_{\hat{d}}^2\) of 
 \[
 [\mathrm{R}] \underline{\mathrm{w}}_o = \underline{\mathrm{p}} \quad \Rightarrow \quad \sigma_{\hat{d}}^2 = \underline{\mathrm{w}}_o^H \underline{\mathrm{p}} = \underline{\mathrm{p}}^H \underline{\mathrm{w}}_o
 \]
-
 \[
 \underline{\mathrm{w}}_o = [\mathrm{R}]^{-1} \underline{\mathrm{p}} \quad \Rightarrow \quad
 J_\text{min} = \sigma_d^2 - \sigma_{\hat{d}}^2 = \sigma_d^2 - \underline{\mathrm{p}}^H [\mathrm{R}]^{-1} \underline{\mathrm{p}}
@@ -265,13 +241,11 @@ J_\text{min} = \sigma_d^2 - \sigma_{\hat{d}}^2 = \sigma_d^2 - \underline{\mathrm
 \subsection{Canonical form of the error surface}
 
 The error-performance surface can be rewritten in matrix form as:
-
 \[
 J(\underline{\mathrm{w}}) = \sigma_d^2 - \underline{\mathrm{w}}^H \underline{\mathrm{p}} - \underline{\mathrm{p}}^H \underline{\mathrm{w}} + \underline{\mathrm{w}}^H [\mathrm{R}] \underline{\mathrm{w}}
 \]
 
 Rearranging the terms, we get:
-
 \[
 J(\underline{\mathrm{w}}) = \underbrace{\left[ \sigma_d^2 - \underline{\mathrm{p}}^H [\mathrm{R}]^{-1} \underline{\mathrm{p}} \right]}_{J_\text{min}} + \left( \underline{\mathrm{w}} - \underbrace{[\mathrm{R}]^{-1} \underline{\mathrm{p}}}_{\underline{\mathrm{w}}_o} \right)^H [\mathrm{R}] \left( \underline{\mathrm{w}} - \underbrace{[\mathrm{R}]^{-1} \underline{\mathrm{p}}}_{\underline{\mathrm{w}}_o} \right) = J_\text{min} + (\underline{\mathrm{w}} - \underline{\mathrm{w}}_o)^H [\mathrm{R}] (\underline{\mathrm{w}} - \underline{\mathrm{w}}_o)
 \]
@@ -279,7 +253,6 @@ J(\underline{\mathrm{w}}) = \underbrace{\left[ \sigma_d^2 - \underline{\mathrm{p
 This shows explicitly the existence of a unique minimum of the cost function, occurring at optimal conditions \( (\underline{\mathrm{w}} = \underline{\mathrm{w}}_o) \).
 But we can simplify the cost function expression making a \textbf{change of basis}.
 Let us consider the \textbf{eigenvalue decomposition} of the auto-correlation matrix \([\mathrm{R}]\):
-
 \[
 [\mathrm{R}] = [\mathrm{Q}] [\Lambda] [\mathrm{Q}]^H, \qquad [\Lambda] =
 \begin{bmatrix}
@@ -291,13 +264,11 @@ Let us consider the \textbf{eigenvalue decomposition} of the auto-correlation ma
 \]
 
 We consider a transformed version of the filter coefficients:
-
 \[
 \underline{\mathrm{v}} = [\mathrm{Q}]^H \left(\underline{\mathrm{w}} - \underline{\mathrm{w}}_o\right) = \left[ v_1, v_2, \cdots, v_M \right]^T
 \]
 
 The canonical form of the error surface becomes:
-
 \[
 J = J_\text{min} + \underline{\mathrm{v}}^H [\Lambda]  \underline{\mathrm{v}}= J_\text{min} + \sum_{k=1}^M \lambda_k v_k v_k^* = J_\text{min} + \sum_{k=1}^M \lambda_k \abs{v_k}^2
 \]
