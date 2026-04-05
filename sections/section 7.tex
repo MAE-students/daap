@@ -576,4 +576,80 @@ The \textbf{least-squares estimate} of the inverse filter $g$ is computed as fol
 
 Notice that if the impulse response $h$ is non-minimum phase (i.e. it has unstable zeros), then the residual error does not vanish even when the length of the inverse filter $N_g \to \infty$.
 
+
+\subsection{Notes on compression and expansion (background slides)}
+
+An audio signal $U(n)$ can be considered as a (locally stationary) random process, with its own first-order statistics (statistics of individual samples)
+
+\textbf{Cumulative Probability Density Function (CPDF)} of the signal (estimated from the 
+histogram of amplitudes within the observation window):
+ \[
+ F_U(u) := P[U \leq u]
+ \]
+A generic nonlinearity $g(\cdot)$ applied to the signal $U$ will modify its CPDF.
+In particular, if the nonlinear mapping $g$ is chosen to match matches the CPDF $F_U(\cdot)$ of the random process, we end up with a new random process whose first-order statistics are uniformly distributed.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.5\linewidth]{images/cpdf1.png}
+    \label{fig:cpdf}
+\end{figure}
+
+Proof: 
+\[
+P[V \leq v] = P[F_U(U) \leq v] = P[U \leq F^{-1}_U(v)] = F_U(F^{-1}_U(v)) = v
+\]
+$Fv(v)=v$ means that the CPDF of V is now uniform.
+Notice that we need to assume invertibility of $F_U(\cdot)$, which means that it is not enough to know that it is monotonically non-decreasing, it has to be monotonically increasing. 
+Normally CPDFs do not satisfy this hypothesis, but the 
+«equalization» of the PDF is still possible in an approximate fashion, as shown in the example that follows.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.75\linewidth]{images/CPDFexample.png}
+\end{figure}
+This example refers to the pixels of an image (all positive). 
+After PDF equalization we expect to see a nearly linear CPDF as well as a nearly flat PDF (where nearly is due to the discrete nature of the amplitudes). 
+However, the PDF that we see seems anything but flat. 
+This is due to the fact that the companding nonlinearity can only rigidly move the vertical bars of the histogram, not change their magnitude. 
+The best we can do, therefore, is guarantee a constant “local density” of the histogram peaks. 
+This is actually good, because its integral, shown on the right, is nearly linear (local step-like behavior due to the gaps in the histogram on the left).
+
+\subsubsection{PDF shaping}
+We first equalize to obtain \(W = \int_0^U p_U(u)du = F_U(U)\).
+We then shape the PDF by de-equalizing $W$:
+\[f(U) = F_V^{-1}[F_U(U)]\]
+where $f(Y)$ is the final nonlinear function, $F_V^{-1}$ is the inverse of the desired cumulative PDF (shaping function) and $F_U^{-1}$ is the original sumulative PDF (equalizing fucntion). 
+
+So we take $U$, we pass it through a non linear function, and we quantize it. So instead of equalize it we do this process. It's not good as the equalizer, but still it is good enough to be used in many cases.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.4\linewidth]{images/CPDF2.png}
+\end{figure}
+
+Note:
+The two nonlinearities (shaper and quantizer) are cascaded but could be consolidated.
+This process can be made adaptive (frame-by-frame), but it is usually performed in a stationary fashion.
+
+\subsubsection{Discussion on BDX}
+DBX involves a compander and an expander, therefore it shapes the statistics of the signal. 
+The expander is the inverse of the compander, therefore at the end the first order statistics of the signal are unchanged. 
+However, the hissing noise only appears in the playout phase, therefore its statistics are affected by the expander only. 
+Noise is therefore magnified at the end, and the magnification can be analyzed with these instruments.
+
+Questions:
+\begin{itemize}
+    \item given the PDF of the signal, the dynamic range of the storage medium, and the PDF of the hissing noise introduced in the playout phase, is it possible design a companding curve (and its inverse) in such a way to keep the noise abay?
+    \item What changes when we use a compander/expander system in the digital domain?
+    \begin{itemize}
+        \item In addition to the hissing noise, we also have the quantization noise
+        \item If we compand with an equalizer, we end up with a reasonably flat pdf. For this type of pdf it is quite straightforward to determine the optimal quantizer (uniform)
+        \item The cascade of compander, uniform quantizer and expander approximates quite well the optimal nonlinear quantizer (Lloyd-Max)
+    \end{itemize}
+    \item Can we use all of the above to design a better «digital DBX»?
+\end{itemize}
+
+i dont know why we were talking about this stuff.
+
 \clearpage

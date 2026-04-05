@@ -533,7 +533,7 @@ A critical challenge in the scaling step is the occurrence of \textbf{phase disc
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\linewidth]{Phase jump.png}
+    \includegraphics[width=0.5\linewidth]{Phase jump.png}
     \caption{Phase discontinuity in STFT-based elaborations}
 \end{figure}
 
@@ -610,7 +610,7 @@ The phase term obtained from the STFT presents $2\pi$ periodicity (i.e. wrapped)
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.65\linewidth]{Phase unwrapping.png}
+    \includegraphics[width=0.75\linewidth]{Phase unwrapping.png}
     \caption{Phase unwrapping}
 \end{figure}
 
@@ -632,8 +632,10 @@ Assuming $\omega_k$ is constant within the window, we can estimate the instantan
 \omega(t) = \frac{d}{dt} \phi(t) \quad \Rightarrow \quad \omega_k (t_a^u) = \frac{\Delta \phi}{\underbrace{t_a^u - t_a^{u-1}}_R} = \frac{\Delta \phi_w + m \cdot 2\pi}{R}
 \]
 
+We can see $\omega_k$ as the slope and so the line that connects the two points $\phi_1(t_a^{u-1})$ and $\phi_2(t_a^{u})$.
+
 We usually do not know the number $m$ of wrappings occurring in one window interval $R$.
-As the sinusoid is assumed to fall within the $k$-th Fourier channel, the frequency $\omega_k(t_a^u)$ must lie within the frequency band associated with that bin:
+As the sinusoid is assumed to fall within the $k$-th Fourier channel, the frequency $\omega_k(t_a^u)$ must lie within the frequency band associated with that bin ($\omega_h$ is the window's cutoff frequency):
 
 \[
 \abs{\left( \omega_k(t_a^u) - \Omega_k \right) R} = \abs{\Delta\phi_w + m \cdot 2\pi - \Omega_k R} \leq \omega_h R
@@ -662,7 +664,7 @@ The smoother the window (i.e. narrow mainlobe), the more overlap is required to 
 
 \subsubsection{Summary}
 
-We define synthesis time instants at a regular interval $R_s$ and we evaluate the analysis instants $t_a^u$ and the analysis interval $R$ applying a time-warping function $T$ to the synthesis parameters:
+We define synthesis time instants at a regular interval $R_s$ and we evaluate the analysis time-instants $t_a^u$ and the analysis interval $R$ (rate) applying a time-warping function $T$ to the synthesis parameters:
 
 \[
 t_s^u - t_s^{u-1} = R_s, \qquad
@@ -700,7 +702,7 @@ The phase of the sinusoidal evolves freely and only its derivative with respect 
 Once the modified STFT $Y(t_s^u, \Omega_k)$ is computed, it is used to reconstruct the time-scaled signal through inverse transformation and OLA:
 
 \[
-y(n) = \sum_{u = -\infty}^{\infty} w(n - t_s^u) \frac{1}{N} \sum_{k = 0}^{N-1} Y(t_s^u, \Omega_k) \ e^{j \Omega_k (n - t_s^u)}
+y(n) = \underbrace{\sum_{u = -\infty}^{\infty} w(n - t_s^u)}_{\text{OLA}}  \underbrace{\frac{1}{N} \sum_{k = 0}^{N-1} Y(t_s^u, \Omega_k) \ e^{j \Omega_k (n - t_s^u)}}_{\text{IFFT}}
 \]
 
 The algorithm steps are the following:
@@ -760,5 +762,8 @@ After the time scaling, we resample (i.e. time warping) using the inverse mappin
 \[
 x'(t') = x \left( T^{-1}(t') \right)
 \]
+
+The process of resampling can be explained in the following schemes. We can see two examples of resamplings, one ideal and one linear. 
+Few slides he will upload.
 
 \clearpage

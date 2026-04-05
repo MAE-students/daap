@@ -36,6 +36,8 @@ In this case, the signal $s$ can be modelled as:
 s(n) = \alpha(n) \cos \left[\omega_c n + \phi(n) \right]
 \]
 
+Note: Anna and Peo remember you that we are operating in discrete domain, so $\omega_c$ is a normalized frequency.
+
 We extract frames $s_t$ of length $L$ samples from the signal using rectangular window $w$ and unitary hop-size:
 
 \[
@@ -226,11 +228,11 @@ This geometrical configuration allows the propagation model to be expressed in a
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.4\linewidth]{ULA.png}
+    \includegraphics[width=0.5\linewidth]{ULA.png}
     \caption{Uniform Line Array}
 \end{figure}
 
-To proceed with the model derivation, we take the \textbf{first microphone} in the array as the reference point.
+To proceed with the model derivation, we take the \textbf{first microphone} in the array as the reference point (so without delay).
 Under this assumption, we can explicitly express the time delay for the $k$-th microphone as a function of the direction of arrival $\theta$:
 
 \[
@@ -266,7 +268,7 @@ e^{-j \omega_c (M-1) \frac{d \sin(\theta)}{c}}
 \]
 
 \subsubsection{Spatial frequency}
-The terms of the propagation vector correspond to the samples of a complex sinusoid:
+The terms of the propagation vector correspond to the samples of a complex sinusoid (that is a plane wave):
 
 \[
 e^{-j \omega_c \frac{d \sin(\theta)}{c} k}, \qquad \quad k = 0, 1, \cdots, M-1
@@ -313,7 +315,7 @@ The anti-aliasing condition can be expressed as a function of the microphone spa
 
 \subsection{DOA estimation problem}
 The \textbf{source DOA} is directly related to the \textbf{spatial frequency}.
-Thus, DOA estimation can be brought to the problem of spatial frequency estimation: $N$ sources impinging from different DOAs are characterized by different spatial frequencies.
+Thus, DOA estimation can be brought to the problem of spatial frequency estimation: $N$ sources impinging (interfering) from different DOAs are characterized by different spatial frequencies.
 
 \textbf{Non-parametric methods} (i.e. spatial filtering) perform DOA estimation without any assumptions about the covariance structure of the array data.
 \textbf{Parametric methods} perform DOA estimation based on a parametrization of the \textbf{covariance structure} of the array data.
