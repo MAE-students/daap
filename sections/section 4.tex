@@ -236,7 +236,7 @@ We can express the above in the frequency domain using the Parseval theorem:
 Since the integrand is positive, we conclude the following:
 \[ \Rightarrow \quad \min_{\underline{\mathrm{a}}_k} \varepsilon_n \quad \Leftrightarrow \quad \min_{\underline{\mathrm{a}}_k} \frac{\abs{S_n(e^{j\omega})}^2}{\abs{H_n(e^{j\omega})}^2}, \qquad \forall -\pi \leq \omega \leq +\pi \]
 
-The LPC technique tries to minimize $ \dfrac{\abs{S_n(e^{j\omega})}^2}{\abs{H_n(e^{j\omega})}^2} $, so we may consider two particular regions:
+The LPC technique tries to minimize $ \dfrac{\abs{S_n(e^{j\omega})}^2}{\abs{H_n(e^{j\omega})}^2} $ for $-\pi \le \omega \le \pi$, so we may consider two particular regions:
 
 \[ \left[ \begin{array}{c}
     \abs{S_n(e^{j\omega})} > \abs{H_n(e^{j\omega})} \rightarrow \text{signal spectrum (in magnitude) is large} \Rightarrow \text{large contribution to } \varepsilon_n \ (>1) \\
@@ -248,13 +248,14 @@ Considering that the first region contributes the most to the prediction error, 
 This observation allows to justify the intuition of \textbf{spectral envelope estimator}, because focuses on the peaks estimation more than the valleys.
 The greater the LPC order $p$, the smaller the error: the approximation for both peaks and valleys will be better.
 In other words, the order $p$ controls the smoothness of the LPC spectrum.
-A \textbf{rule of thumb} that works when we want to define a general envelope for speech (i.e. formants), considering $F_s$ sampling frequency:
 
+If our goal is to capture the spectral envelope and not the fine structure, then it is essential to choose an appropriate value of $p$.
+A \textbf{rule of thumb} that works when we want to define a general envelope for speech (i.e. formants), considering $F_s$ sampling frequency:
 \[ \frac{F_s}{1000} \leq p \leq \frac{F_s}{1000} + 4 \]
 
 \subsection{Frequency selective LPC}
 
-In some applications, we prefer to apply the LPC considering a \textbf{specific frequency range} (i.e. 0-4 kHz for voiced sounds and vowel components, 4-8 kHz for unvoiced sounds and consonant components), so that we may select different orders $p_1$ and $p_2$ to predict different regions of the signal spectrum (usually smoother envelope for higher frequencies, which means $p_2$ smaller).
+In some applications, we prefer to perform different LPC analysis in different \textbf{specific frequency range} (i.e. 0-4 kHz for voiced sounds and vowel components, 4-8 kHz for unvoiced sounds and (fricatives) components), so that we may select different orders $p_1$ and $p_2$ to predict different regions of the signal spectrum (usually smoother envelope for higher frequencies, which means $p_2$ smaller).
 
 \begin{figure}[H]
     \centering
@@ -262,18 +263,17 @@ In some applications, we prefer to apply the LPC considering a \textbf{specific 
     \caption{Frequency selective LPC}
 \end{figure}
 
-In order to predict the signal in the frequency range $ f \in [f_A, f_B] $, we need to map the angular frequency $\omega'$ accordingly before evaluating the \textbf{new auto-correlation} $r_n'$ using the \textbf{IDTFT} (Inverse Discrete-Time Fourier Transform):
-
+In order to predict the signal in the frequency range $ f \in [f_A, f_B] $, we need to map the interval to a normalized angular frequency $\omega'$ accordingly before and to evaluate the \textbf{new auto-correlation} $r_n'$ using the \textbf{IDTFT} (Inverse Discrete-Time Fourier Transform):
 \[ \omega \in [2 \pi f_A, \ 2 \pi f_B] \quad \Rightarrow \quad \omega' \in [0, 2\pi], \qquad r_n'(k) = \frac{1}{2\pi} \int_{-\pi}^{+\pi} \abs{S_n(e^{j\omega'})}^2 e^{j\omega' k} \ d\omega' \]
 
-The Wiener-Hopf solution is obtained as before, using the new coefficients $ \left\{ r_n'(k) \right\}$ for $\underline{\mathrm{r}}_n$ and $\left[\mathrm{R}_n\right]$.
+Then the Wiener-Hopf solution is obtained as before, using the new coefficients $ \left\{ r_n'(k) \right\}$ for $\underline{\mathrm{r}}_n$ and $\left[\mathrm{R}_n\right]$.
 
 \subsection{Applications}
 
 A common application is \textbf{speech coding} and \textbf{synthesis}.
 We model the speech production by defining $e_n(m)$ as the excitation source at the glottis and $H_n(z)$ as the vocal tract transfer function.
 We can encode the LPC coefficients in order to achieve data compression in the speech coding.
-Different prediction errors can be used to differentiate vowel and consonant sounds: a train of pulses is more suited for vowels, while a white noise is more suited for fricative sounds.
+Different prediction errors can be used to differentiate vowel and consonant sounds: a train of pulses is more suited as excitation signal $e'_n(m)$ for vowels, while a white noise is more suited for fricative sounds.
 
 \begin{figure}[H]
     \centering
@@ -282,8 +282,8 @@ Different prediction errors can be used to differentiate vowel and consonant sou
 \end{figure}
 
 Another application is to implement a \textbf{robust pitch detection}.
-The idea is to look at the prediction error peaks of segments of a voiced sound, then evaluate the average distance between the peaks.
-The estimator can be more robust if we take long segments, which means predicting the current sample using the past samples located at one period earlier.
+The idea is to look at the prediction error peaks of segments of a voiced sound, then evaluate the average distance between the peaks to obtain an estimation of the pitch.
+The estimator can be more robust considering a long-term predictor, so if we take long segments, which means predicting the current sample using the past samples located at one pitch period earlier.
 
 \begin{figure}[H]
     \centering
@@ -302,7 +302,7 @@ The estimator can be more robust if we take long segments, which means predictin
 
 Finally, another application is the \textbf{cross-synthesis} (i.e. talking instruments).
 The idea is to feed a musical instrument signal into the vocal tract transfer function from a LPC speech analysis.
-The musical signal works as the excitation source $e_n(m)$ for the shaping filter $H_n(z)$ : the output signal will have a formant-like structure and the harmonic and textural qualities of the instrument.
+The musical signal works as a periodic excitation source $e_n(m)$ for the shaping filter $H_n(z)$ : the output signal will have a formant-like structure and the harmonic and textural qualities of the instrument.
 
 For each frame, we perform the LPC analysis on both musical signal $x^M(n)$ and speech signal $x^S(n)$, so that we may feed the musical prediction error $e^M(n)$ into the speech shaping filter $H^S(z)$.
 
