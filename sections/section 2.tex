@@ -11,7 +11,7 @@ The output signal $y(n)$ of a \textbf{Finite Impulse Response} (FIR) $h$ with in
 \[ y(n) = \sum_{i=0}^{N} h(i) \ x(n - i), \qquad \texttt{y = conv(x,h);}\]
 
 Let us consider the implementation of FIRs in audio.
-We want the IR short enough to design real-time applications: the integration time of the hearing system, definedd as the reciprocal of the critical bandwidth of hearing, is around 10 ms below 500 Hz. If we consider sampling rate of 50 kHz, we have $N=500$ samples.
+We want the IR short enough to design real-time applications: the integration time of the hearing system, defined as the reciprocal of the critical bandwidth of hearing, is around 10 ms below 500 Hz. If we consider sampling rate of 50 kHz, we have $N=500$ samples.
 So, it is common to have \textbf{hundreds of taps} (samples) in the filter IR (for filters shorter than the ear's integration time).
 
 The time duration of the filter (around 10 ms) is short enough that we only need the magnitude frequency response to describe the filter.
