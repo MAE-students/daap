@@ -15,6 +15,7 @@ We want the IR short enough to design real-time applications: the integration ti
 So, it is common to have \textbf{hundreds of taps} (samples) in the filter IR (for filters shorter than the ear's integration time).
 
 The time duration of the filter (around 10 ms) is short enough that we only need the magnitude frequency response to describe the filter.
+It is also good to hear because we have no strange effects and it is well equalized.
 Therefore, the \textbf{complexity} of the \textbf{direct linear convolution} is $\mathcal{O}(N^2)$, and this is too high, too expensive to compute.
 
 \begin{figure}[H]
@@ -158,8 +159,16 @@ The output of the LPF is a 440 Hz sinusoid, as we cut the higher components (at 
 Let us see what happens when the zero-padding process is not implemented correctly, adding not enough zeros (time-domain aliasing, undersampling in the frequency domain).
 The exercise is the very same of the previous example, but we study how the $N$ value actually changes the results.
 
-We define the filter length $L=65$ samples, signal frame length $M=100$ samples, signal $x(n)$ given by two impulses $\delta$: at time 0 and at time $M-(L-1)/4 = 86$. The antialiasing condition is $N>M+L-1$
+We define the filter length $L=65$ samples, signal frame length $M=100$ samples, signal $x(n)$ given by two impulses $\delta$: at time 0 and at time $M-(L-1)/4 = 86$. The antialiasing condition is $N>M+L-1$.3
 
+We try different $N$: $N=M$, $N = M+ \frac{L}{4}$, $N = M+ \frac{L}{2}$, $N = M+L$. Some of them show the aliasing effect on the signal.
+
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{ex 2.png}
+    \caption{Signal (left) and filter time samples (right)}
+\end{figure}
 \begin{multicols}{2}
 \begin{verbatim}
 M = 100; % signal length
@@ -179,13 +188,7 @@ h0 = [h; zeros(N-L,1)];
 X0 = fft(x0); H0 = fft(h0);
 y0 = ifft(X0.*H0);
 \end{verbatim}
-\end{multicols}
-
-\begin{figure}[H]
-    \centering
-    \includegraphics[width=1\linewidth]{ex 2.png}
-    \caption{Signal (left) and filter time samples (right)}
-\end{figure}
+\end{multicols} 
 
 Let us notice that, for some $N$ values, the time-domain aliasing occurs:
 
@@ -200,7 +203,7 @@ Let us notice that, for some $N$ values, the time-domain aliasing occurs:
 Up to now, we considered time-fixed durations for $x(n)$, where a single FFT occurs.
 In some cases it is \textbf{not practical} to implement the \textbf{convolution} with a \textbf{single FFT}: for example, when $N_x$ is extremely large, or when the filtering operation is real-time.
 So, it becomes necessary to extract a smaller portion of $x(n)$, considering that $h(n)$ has $N_h$ samples.
-An efficient approach is to store $N_h-1$ samples of the signal $x(n)$ into a \textbf{circular buffer}, where rotating indexes allows to avoid any memory copying:
+An efficient approach is to store $N_h-1$ samples of the signal $x(n)$ into a \textbf{circular buffer}, where rotating indexes allows to avoid any memory copying (rather then moving data, move the indexes that access the data):
 
 \begin{figure}[H]
     \centering
@@ -260,8 +263,7 @@ There is no constrain on the window type, but only to the satisfaction of this c
     \caption{Windows and hop-size that satisfy the COLA condition}
 \end{table}
 
-The \textbf{output signal} $y(n)$ of the filter, in terms of frames $x_m(n)$, is expressed as:
-
+The \textbf{output signal} $y(n)$ of the filter, in terms of frames $x_m(n)$, is a discrete infinite function and is expressed as:
 \[ y(n) = x(n) * h(n) = \sum_{m=-\infty}^{+\infty} x_m(n) * h(n), \quad -\infty < n < +\infty \]
 
 The \textbf{output DTFT} $Y(\omega)$ in the frequency domain is a continuous periodic function:
@@ -279,7 +281,7 @@ The filter $h(n)$, the window $w(n)$ and the extracted frames $x_m(n)$ have \tex
 As a consequence, the convolution term $y_m(n)$ has finite support, equal to $N_h+M-1$:
 \[ y_m(n) = x_m(n) * h(n) \qquad \neq 0 \qquad \text{for} \ n \in [mR,mR+N_h+M-2], \qquad\text{support: } L=N_h+M-1 \]
 
-The idea is to use FFt to compute this convolution, considering only the non-zero terms.
+The idea is to use FFT to compute this convolution, considering only the non-zero terms.
 For convenience, let's define a notation for the frame $x_m(n)$ shifted to the time origin and then convolved:
 \[ \tilde{x}_m(n) = x_m(n+mR) \quad \Rightarrow \quad \tilde{y}_m(n) = \tilde{x}_m(n) * h(n) = y_m(n+mR) \]
 
@@ -320,6 +322,11 @@ We implement this series of operations for all frames.
 Remember that each frame has been shifted back by samples, so for simplicity we define ì the SHIFT operator:
 \[
 \tilde{x}_m(n) = \text{SHIFT}_{-mR}\{{x}_m(n)\} = x_m(n+mR)
+\]
+
+After the convolution, we need to shift back the result to the original position, namely:
+\[
+y_m(n) = \text{SHIFT}_{mR}[{\tilde{y}}_m(n)]
 \]
 
 The entire processing is expressed as:
@@ -420,7 +427,7 @@ This is what happens for each frame:
 
 An example of application is real-time reverberation, like with VST plugins: \textbf{Room Impulse Responses} (RIR) are usually very long ($10^4$ samples at $F_s = 44100$ Hz correspond to around 230 ms), so direct convolution is not manageable.
 
-Another one is the implementation of a multichannel reproduction system (\textbf{wavefield synthesis}): different loudspeakers contribute to the sound wavefield in a certain area, so each speaker needs different filtering (in real-time elaboration, the IR may be long up to $400$ samples).
+Another one is the implementation of a multichannel reproduction system (\textbf{wavefield synthesis}): different loudspeakers contribute to the sound wavefield in a certain area, so each speaker needs different filtering (in real-time elaboration, the IR may be long up to $4000$ samples).
 
 \begin{figure}[H]
     \centering
@@ -434,11 +441,11 @@ Another one is the implementation of a multichannel reproduction system (\textbf
 Considering that we want to implement the DTFT on time frames, we may think about the STFT of a signal: it is a time-frequency representation where the signal time evolution is evaluated in different frames (upon which we compute the FFT).
 
 The frame $x_m(n)$ is defined in time, while its DTFT $X_m(\omega)$ is defined in frequency: the STFT is function of both time and frequency.
-The frame length $M$ defines time-frequency resolution of the data frame, while the FFT length $N$ defines time-frequency resolution of the spectral content:
+The frame length $M$ defines time-frequency resolution of the data frame, while the FFT length $N$ defines time-frequency resolution of the spectral content, and it depends on $M$ too:
 
 \[ N > M + N_h -1 \]
 
-The hop-size $R$ defines the temporal resolution and we remind that the frequency bins are equally spaced.
+The hop-size $R$ defines the temporal resolution and we remind that the frequency bins are equally spaced since we are using DFT.
 
 The code for computing the STFT and plotting the \textbf{spectogram} is:
 
