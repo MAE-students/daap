@@ -22,7 +22,6 @@ We may think of different applications that need this kind of elaboration:
 
 The problem we face when we make simple time-frequency elaborations is that time and frequency domains are inherently linked: to perform independent time and pitch scaling, we need to bypass the \textbf{Fourier scaling theorem}.
 Whenever we try to modify the time axis, we make an inverse modification of the frequency axis:
-
 \[
 x(t) \overset{\mathcal{F}}{\longrightarrow} X(f) \quad \Rightarrow \quad x(\alpha t) \overset{\mathcal{F}}{\longrightarrow} \frac{1}{\abs{\alpha}} X\left(\frac{f}{\alpha}\right)
 \]
@@ -33,19 +32,17 @@ We could apply subsampling (of factor 2) to obtain half samples and define a new
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.45\linewidth]{Time scaling issue 1.png}
-    \includegraphics[width=0.25\linewidth]{Time scaling issue 2.png}      
+    \includegraphics[width=0.35\linewidth]{Time scaling issue 1.png}
+    \includegraphics[width=0.2\linewidth]{Time scaling issue 2.png}      
     \caption{Time scaling (of factor 2) obtained by simple subsampling}
 \end{figure}
 
-\clearpage
 
 \subsection{Formal problem definition}
 It is difficult to define time-scaling or pitch-scaling for a general signal because \textbf{time and frequency are not independent}.
 It is easier to refer to a \textbf{parametric model} of audio signals.
 
 Hereinafter we consider a \textbf{sinusoidal model}: the signal is a sum of \(I\) sinusoids, each one with time-varying amplitude \(A_i\) and (angular) frequency \(\omega_i\).
-
 \[
 x(t) = \sum_{i=1}^{I(t)} A_i(t) \ e^{j\phi_i(t)}, \qquad \phi_i(t) = \int_{-\infty}^{t} \omega_i(\tau) \ d\tau
 \]
@@ -55,7 +52,6 @@ It makes it easier to understand both temporal and frequency evolution.
 \subsubsection{Ideal time scaling}
 We want to obtain a new signal \(x'\) in the \textbf{scaled time axis} \(t'\).
 We define a \textbf{time warping function} \(T\) to map the original function into the new one (desired time-scaled signal):
-
 \[
 t \longleftarrow t'=T(t) \quad \Rightarrow \quad x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \omega_i\left(T^{-1}(\tau)\right) \ d\tau
 \]
@@ -75,7 +71,6 @@ We remind that in a sinusoidal model we directly control amplitude and frequency
 
 \subsubsection{Ideal pitch scaling}
 We want now to obtain a new signal \(x'\) with a new phase \(\phi'\), which takes into account the frequency modifications for each time instant thanks to the \textbf{pitch modification factor} (possibly time-varying) \(\alpha(t)\):
-
 \[
 \omega_i(t) \longleftarrow \alpha(t) \omega_i(t) \quad \Rightarrow \quad x'(t') = \sum_{i=1}^{I(t')} A_i(t') \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \alpha(\tau) \omega_i(\tau) \ d\tau
 \]
@@ -92,7 +87,6 @@ As before, in a sinusoidal model we directly control amplitude and frequency (bu
 
 \subsubsection{Ideal combined time-pitch scaling}
 To implement both time and pitch scaling, we need both the \textbf{time warping function} \(T(t)\) and the \textbf{pitch modification factor} \(\alpha(t)\):
-
 \[
 x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ e^{j\phi_i'(t')}, \qquad \phi_i'(t') = \int_{-\infty}^{t'} \alpha\left(T^{-1}(\tau)\right) \omega_i\left(T^{-1}(\tau)\right) \ d\tau
 \]
@@ -116,19 +110,16 @@ x'(t') = \sum_{i=1}^{I\left(T^{-1}(t')\right)} A_i\left(T^{-1}(t')\right) \ \exp
 \]
 
 We apply time warping as:
-
 \[
 t' \longleftarrow T(t') \quad \Rightarrow \quad y(t') = x'\left(T(t')\right) = \sum_{i=1}^{I(t')} A_i(t') \ \exp \left\{j \int_{-\infty}^{T(t')} \omega_i\left(T^{-1}(\tau)\right) \ d\tau\right\}
 \]
 
 We perform the change of variable $\tau' = T^{-1}(\tau)$:
-
 \[
 \tau = T(\tau'), \quad d\tau = dT(\tau') = \frac{dT}{d\tau'} d\tau' \quad \Rightarrow \quad y(t') = \sum_{i=1}^{I(t')} A_i(t') \ \exp \left\{j \int_{-\infty}^{t'} \left(\frac{dT}{d\tau'}\right) \omega_i(\tau') \ d\tau' \right\}
 \]
 
 The final expression is the same of the following pitch scaling:
-
 \[
 \alpha(t) = \frac{dT}{d\tau'} \quad \Rightarrow \quad y(t') = \sum_{i=1}^{I(t')} A_i(t') \ \exp \left\{j \int_{-\infty}^{t'} \underbrace{\left(\frac{dT}{d\tau'}\right)}_{\alpha(\tau')} \omega_i(\tau') \ d\tau' \right\}
 \]
@@ -151,14 +142,16 @@ We define different time-pitch scaling methods:
 The idea behind \textbf{parametric frequency-based techniques} is to modify directly amplitude and frequency trajectories of the signal.
 We start from the signal \textbf{analysis} (STFT or filterbank), we define the trajectories (\textbf{peak detection and tracking}), we modify them appropriately (\textbf{partials modification}) and we obtain the final result by \textbf{synthesis} (bank of oscillators).
 
+It is \textbf{parametric}, which means it works with amplitude and frequency trajectories that drive the oscillators.
+So, this approach works both with sinusoidal and spectral modelling (harmonic and noise components) in analysis.
+
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.5\linewidth]{Parametric frequency-based.png}
     \caption{Parametric frequency-based method: peak tracking}
 \end{figure}
 
-It is \textbf{parametric}, which means it works with amplitude and frequency trajectories that drive the oscillators.
-So, this approach works both with sinusoidal and spectral modelling (harmonic and noise components) in analysis.
+
 
 \subsection{Non-parametric time-domain methods: Pitch-independent}
 Let us introduce non-parametric methods in the time domain.

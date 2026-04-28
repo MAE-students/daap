@@ -4,7 +4,7 @@
 
 The purpose of Wiener filtering is to produce an \textbf{estimate of a target signal} by linear time-invariant \textbf{(LTI) filtering} an observed noisy process.
 
-The goal is to perform \textbf{minimum MSE} (mean-square error) estimation of a stationary random process of interest, given measurements of another related process.
+The goal is to perform \textbf{minimum MSE} (mean-square error) estimation of a stationary random process of interest $d(n)$, given measurements of another related process $u(n)$.
 
 \begin{figure}[H]
     \centering
@@ -15,7 +15,7 @@ The goal is to perform \textbf{minimum MSE} (mean-square error) estimation of a 
 \subsection{Data model and problem formulation}
 
 Let us consider all the signals to be complex-valued stationary zero-mean random processes.
-The \textbf{Wiener filter} \( W(z) \) is a complex-valued IIR (infinite impulse response).
+The \textbf{Wiener filter} \( W(z) \) is a complex-valued IIR (infinite impulse response) filter.
 The output $y$ of a filter is a linear convolution between input $u$ and impulse response $w$:
 \[
 y(n) = \sum_{k=0}^{\infty} w^*(k) u(n-k)
@@ -35,7 +35,7 @@ We express the filter coefficients as complex values:
 w(k) = a(k) + jb(k), \qquad k = 0, 1, 2, \cdots
 \]
 
-We define the (complex) gradient operator and apply it to the cost function \( J \):
+We define the (complex) gradient operator and apply it to the cost function \( J \) ($J$ is function of $w$ because to change the result of $J$ we can only change the coefficients of the filter):
 \[
 \nabla_k = \frac{\partial}{\partial a_k} + j \frac{\partial}{\partial b_k}
 \quad \Rightarrow \quad
@@ -102,7 +102,7 @@ This \textbf{corollary} states that, when the filter operates in its optimum con
 
 Let us define the different signals we have in optimum conditions:
 \[
-\hat{d}(n) = y_o(n): \quad \text{estimate of the desired response } d, \qquad J_\text{min} = E\left\{\abs{e_o(n)}^2\right\}: \quad \text{minimum MSE}
+\hat{d}(n) = y_o(n): \quad \text{estimate of the desired response}, \qquad J_\text{min} = E\left\{\abs{e_o(n)}^2\right\}: \quad \text{minimum MSE}
 \]
 \[
 \sigma_d^2 = E\left\{\abs{d(n)}^2\right\}: \quad \text{variance of } d, \qquad \sigma_{\hat{d}}^2 = E\left\{\abs{\hat{d}(n)}^2\right\}: \quad \text{variance of } \hat{d}
@@ -110,10 +110,16 @@ Let us define the different signals we have in optimum conditions:
 
 In this condition, we can verify that:
 \[
-e_o(n) = d(n) - y_o(n) \quad \Rightarrow \quad d(n) = \hat{d}(n) + J_\text{min}
+e_o(n) = d(n) - y_o(n) \quad \Rightarrow \quad d(n) = \hat{d}(n) + e_o(n)
 \]
 
 Applying the corollary of the orthogonality principle, we define the \textbf{normalized MSE} \( \epsilon \):
+\[E\{|d(n)|^2 \} = E\{|\hat{d}(n) + e_o(n)|^2 \}
+=E\{|\hat{d}(n)|^2\}+
+E\{|e_o(n)|^2\} + 2E\{\hat{d}(n) e_o^*(n)\}
+\quad
+E\{\hat{d}(n) e_o^*(n)\} = 0
+\]
 \[
 \sigma_d^2 = \sigma_{\hat{d}}^2 + J_\text{min} \quad \Rightarrow \quad J_\text{min} = \sigma_d^2 - \sigma_{\hat{d}}^2 \quad \Rightarrow \quad \epsilon = \frac{J_\text{min}}{\sigma_d^2} = 1 - \frac{\sigma_{\hat{d}}^2}{\sigma_d^2}, \quad 0 \leq \epsilon \leq 1
 \]
@@ -139,7 +145,7 @@ Expanding the equation and rearranging the terms we get:
 \sum_{i=0}^{+\infty} w_o(i) \underbrace{E \left\{u(n-k) u^*(n-i)\right\}}_{\text{autocorrelation of the input} \ r(i-k)} = \underbrace{E \left\{u(n-k)d^*(n)\right\}}_{\text{cross-correlation of input and desired response} \ p(-k)}
 \]
 
-We obtain the \textbf{Wiener-Hopf equations}, which describe a linear system to find the optimal Wiener filter coefficients:
+We obtain the \textbf{Wiener-Hopf equations}, which describe a linear system to find the optimal Wiener filter coefficients, where $r(i-k)$ is the autocorrelation function of $u$ evaluated in a time distance $(i-k)$ and $p(-k)$ is the cross correlation function between $d$ and $u$ when they have a time distance equal to $k$:
 \[
 \sum_{i=0}^\infty w_o(i) r(i-k) = p(-k), \qquad k = 0, 1, 2, \cdots
 \]
@@ -193,7 +199,6 @@ e(n) = d(n) - y(n) = d(n) - \sum_{k=0}^{M-1} w^*(k) u(n-k)
 \]
 
 Substituting the error $e$ definition in the expression of the cost function $J$, we get:
-
 \[
 J = E\left\{\abs{e(n)}^2\right\} = E\left\{\abs{d(n)}^2\right\} - \sum_{k=0}^{M-1} w^*(k) E\left\{u(n-k) d^*(n)\right\}
 \]

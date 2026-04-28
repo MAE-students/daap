@@ -368,20 +368,17 @@ The first condition is met when the spatial response at $\overline{\theta}$ is u
 \]
 
 Assuming that the signal is \textbf{spatially white}, that is $\left[\mathrm{R}\right] = \left[\mathrm{I}_{M}\right]$, minimizing the power from all the directions but $\overline{\theta}$ means solving the following problem:
-
 \[
 \underline{\mathrm{h}}(\overline{\theta}) = \arg \min_{\underline{\mathrm{h}}} \ \underline{\mathrm{h}}^{H} \ \underline{\mathrm{h}} \quad \Rightarrow \quad
 \underline{\mathrm{h}}(\overline{\theta}) = \frac{\underline{\mathrm{a}}(\overline{\theta})}{\underline{\mathrm{a}}^{H}(\overline{\theta}) \ \underline{\mathrm{a}}(\overline{\theta})} = \frac{\underline{\mathrm{a}}(\overline{\theta})}{M}
 \]
 
 The \textbf{power} of the filtered signal becomes:
-
 \[
 E\left\{ \abs{y_{F}(t)}^{2} \right\} = \underline{\mathrm{h}}^{H}(\overline{\theta}) \left[\mathrm{R}\right] \ \underline{\mathrm{h}}(\overline{\theta}) = \frac{\underline{\mathrm{a}}^{H}(\overline{\theta}) \left[\mathrm{R}\right] \ \underline{\mathrm{a}}(\overline{\theta})}{M^{2}}
 \]
 
 The DOAs of the sources can be estimated by evaluating the following \textbf{pseudo-spectrum} function at all the spatial directions:
-
 \[
 p(\theta) = \frac{\underline{\mathrm{a}}^{H}(\theta) \left[\hat{\mathrm{R}}\right] \ \underline{\mathrm{a}}(\theta)}{M^{2}}, 
 \qquad \theta \in \left[ -\frac{\pi}{2}, \frac{\pi}{2} \right], \qquad \left[\hat{\mathrm{R}}\right] = \frac{1}{K} \sum_{t=1}^{K} \ \underline{\mathrm{y}}(t) \ \underline{\mathrm{y}}^{H}(t)
@@ -403,7 +400,6 @@ As the filter does not depend on the array data, the spatial response $\underlin
 The beamformer \textbf{resolution} depends on the width of the main lobe of the spatial response.
 For a uniform linear array with \textbf{aperture} $l = (M - 1) d$, the width of the main lobe is approximately given by $\dfrac{\lambda}{l \abs{\cos \overline{\theta}}}$.
 Given two sources with \textbf{angular separation} $\Delta \theta$, located around the frontal direction at $0^{\circ}$, they can be resolved by the pseudo-spectrum function $p(\theta)$ whenever the following condition occurs:
-
 \[
 \Delta \theta > \frac{\lambda}{l}
 \]
@@ -413,7 +409,6 @@ If the condition is not satisfied, a single peak will be visible somewhere in th
 
 \subsubsection{Capon method}
 The Capon method is formulated by the following minimization problem, introduced before:
-
 \[
 \underline{\mathrm{h}}(\overline{\theta}) = \arg \min_{\underline{\mathrm{h}}} \ \underline{\mathrm{h}}^{H} \ \left[\mathrm{R}\right] \ \underline{\mathrm{h}},
 \qquad
@@ -423,19 +418,16 @@ The Capon method is formulated by the following minimization problem, introduced
 Instead of assuming $\left[\mathrm{R}\right] = \left[\mathrm{I}_{M}\right]$, we aim at minimizing the power of signals that actually impinge on the array from directions different from the target one.
 In other words, the Capon method puts effort into attenuating the actual interfering (unwanted) sources, rather than attenuating the energy from all the possible locations.
 The solution becomes:
-
 \[
 \underline{\mathrm{h}}(\overline{\theta}) = \frac{\left[\mathrm{R}\right]^{-1} \ \underline{\mathrm{a}}(\overline{\theta})}{\underline{\mathrm{a}}^{H}(\overline{\theta}) \left[\mathrm{R}\right]^{-1} \ \underline{\mathrm{a}}(\overline{\theta})}
 \]
 
 The corresponding output power becomes:
-
 \[
 E\left\{ \abs{y_{F}(t)}^{2} \right\} = \underline{\mathrm{h}}^{H}(\overline{\theta}) \left[\mathrm{R}\right] \ \underline{\mathrm{h}}(\overline{\theta}) = \frac{1}{\underline{\mathrm{a}}^{H}(\overline{\theta}) \left[\mathrm{R}\right]^{-1} \ \underline{\mathrm{a}}(\overline{\theta})}
 \]
 
 The DOAs are estimated in correspondence to the $N$ highest peaks of the Capon pseudo-spectrum:
-
 \[
 p(\theta) = \frac{1}{\underline{\mathrm{a}}^{H}(\theta) \ \left[\hat{\mathrm{R}}\right]^{-1} \ \underline{\mathrm{a}}(\theta)},
 \qquad \theta \in \left[ -\frac{\pi}{2}, \frac{\pi}{2} \right]
@@ -449,21 +441,18 @@ Parametric methods represent a powerful alternative to spatial filtering for DOA
 They leverage a particular \textbf{model of the covariance structure} of the array data.
 The number of sources $N$ is exactly known in advance and it should occur that $N < M$.
 The source signals $s_{1}(t), s_{2}(t), \cdots, s_{N}(t)$ are such that their covariance matrix $\left[\mathrm{R}_{s}\right]$ is non-singular (partial correlation is admitted):
-
 \[
 \mathrm{rank}\left( \left[\mathrm{R}_{s}\right] \right) = N, 
 \qquad \left[\mathrm{R}_{s}\right] = E \left\{ \underline{\mathrm{s}}(t) \ \underline{\mathrm{s}}^{H}(t) \right\}
 \]
 
 The sensor noise is \textbf{spatially white}, with \textbf{independent and identically distributed (i.i.d.)} components having identical variance:
-
 \[
 E \left\{ \underline{\mathrm{e}}(t) \ \underline{\mathrm{e}}^{H}(t) \right\} = \sigma^{2} \left[\mathrm{I}_{M}\right]
 \]
 
 The sensor noise is \textbf{uncorrelated} with the source signals.
 All the DOAs are different, thus they lead to different spatial frequencies:
-
 \[
 \omega_{s_{1}} \neq \omega_{s_{2}} \neq \dots \neq \omega_{s_{N}}
 \]
@@ -505,25 +494,21 @@ Computing the \textbf{eigenvalue decomposition} and sorting the eigenvalues such
 The matrix $\left[\mathrm{U}\right]$ contains the orthonormal eigenvectors associated to $\{\lambda_{1}, \dots, \lambda_{N}\}$, while the matrix $\left[\mathrm{V}\right]$ contains the orthonormal eigenvectors associated to $\{\lambda_{N+1}, \dots, \lambda_{M}\}$.
 
 As the source signals and the noise are \textbf{uncorrelated}, we can rewrite the diagonal eigenvalue matrix $\left[\mathrm{\Lambda}\right]$ as:
-
 \[
 \left[\mathrm{\Lambda}\right] = \underbrace{\left[\mathrm{\Lambda}_{s}\right]}_{\text{eigenvalues of } \left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H}} + \underbrace{\left[\mathrm{\Lambda}_{e}\right]}_{\text{eigenvalues of } \sigma^{2} \left[\mathrm{I}_{M}\right]} = \left[\mathrm{\Lambda}_{s}\right] + \sigma^{2} \left[\mathrm{I}_{M}\right]
 \]
 
 As the spatial frequencies $\omega_{s}$ are all different, the corresponding propagation matrix $\left[\mathrm{A}\right]$ is full rank:
-
 \[
 \mathrm{rank}\left( \left[\mathrm{A}\right] \right) = \mathrm{rank}\left( \left[ \underline{\mathrm{a}}(\theta_{1}) \ \underline{\mathrm{a}}(\theta_{2}) \ \dots \ \underline{\mathrm{a}}(\theta_{N}) \right] \right) = N
 \]
 
 Moreover, since $\mathrm{rank}\left( \left[\mathrm{R}_{s}\right] \right) = N$, it must be that:
-
 \[
 \mathrm{rank}\left( \left[\mathrm{A}\right] \ \left[\mathrm{R}_{s}\right] \ \left[\mathrm{A}\right]^{H} \right) = N
 \]
 
 It follows that $\left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H}$ has $M - N$ null eigenvalues:
-
 \[
 \left[\mathrm{\Lambda}_{s}\right] =
 \begin{bmatrix}
@@ -537,7 +522,6 @@ It follows that $\left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\math
 \]
 
 Finally, the eigenvalues of $\left[\mathrm{R}\right]$ can be expressed as:
-
 \[
 \lambda_{k} =
 \left\{
@@ -553,7 +537,6 @@ Roughly speaking, the eigenvectors in $\left[\mathrm{U}\right]$ are associated w
 These matrices can be obtained \textbf{if and only if} the number of sources $N$ is known and $N < M$, and the noise power is lower than the source strengths.
 
 Regarding the properties of $\left[\mathrm{V}\right]$, the eigenvalue decomposition implies that:
-
 \[
 \left[\mathrm{R}\right] \left[\mathrm{V}\right] =
 \left[\mathrm{V}\right]
@@ -572,10 +555,8 @@ Regarding the properties of $\left[\mathrm{V}\right]$, the eigenvalue decomposit
 = \sigma^{2}\left[\mathrm{V}\right]
 \]
 
-\clearpage
 
 Replacing the expression of $\left[\mathrm{R}\right]$ we obtain:
-
 \[
 \left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] + \sigma^{2} \left[\mathrm{V}\right] = \sigma^{2} \left[\mathrm{V}\right]
 \quad \Rightarrow \quad
@@ -585,7 +566,6 @@ Replacing the expression of $\left[\mathrm{R}\right]$ we obtain:
 \]
 
 Regarding the properties of $\left[\mathrm{U}\right]$, the eigenvalue decomposition implies that:
-
 \[
 \left[\mathrm{R}\right] \left[\mathrm{U}\right] =
 \left[\mathrm{U}\right]
@@ -612,7 +592,6 @@ Regarding the properties of $\left[\mathrm{U}\right]$, the eigenvalue decomposit
 \]
 
 Replacing the expression of $\left[\mathrm{R}\right]$ we obtain:
-
 \[
 \left[\mathrm{A}\right] \left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{U}\right] + \sigma^{2} \left[\mathrm{U}\right] = \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right] + \sigma^{2} \left[\mathrm{U}\right]
 \quad \Rightarrow \quad
@@ -620,26 +599,22 @@ Replacing the expression of $\left[\mathrm{R}\right]$ we obtain:
 \]
 
 Since $\left[\mathrm{\overline{\Lambda}}\right]$ is non-singular, it can be inverted, leading to:
-
 \[
 \left[\mathrm{U}\right] = \left[\mathrm{A}\right] \ \underbrace{\left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right]^{-1}}_{\left[\mathrm{C}\right] \ \text{non-singular matrix}}
 \]
 
 \subsubsection{Parametric methods: MUSIC (Multiple Signal Classification)}
 MUSIC exploits the fact that:
-
 \[
 \left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] = \left[\mathrm{0}\right]_{N \times (M-N)}
 \]
 
 This expression can be rewritten in scalar form as:
-
 \[
 \left[\mathrm{A}\right]^{H} \left[\mathrm{V}\right] \left[\mathrm{V}\right]^{H} \left[\mathrm{A}\right] = \left[\mathrm{0}\right]
 \]
 
 Its solutions are given by the propagation vectors corresponding to the DOAs:
-
 \[
 \underline{\mathrm{a}}^{H}(\theta_{k}) \left[\mathrm{V}\right] \left[\mathrm{V}\right]^{H} \underline{\mathrm{a}}(\theta_{k}) = 0,
 \qquad k = 1, \cdots, N
@@ -648,7 +623,6 @@ Its solutions are given by the propagation vectors corresponding to the DOAs:
 The MUSIC algorithm proceeds as follows:
 \begin{enumerate}
     \item Estimate the covariance matrix:
-    
     \[
     \left[\hat{\mathrm{R}}\right] = \frac{1}{K} \sum_{t=1}^{K} \ \underline{\mathrm{y}}(t) \ \underline{\mathrm{y}}^{H}(t)
     \]
@@ -656,7 +630,6 @@ The MUSIC algorithm proceeds as follows:
     \item From the eigenvalue decomposition, estimate the eigenvectors $\left[\hat{\mathrm{V}}\right]$ related to noise
     
     \item Estimate the DOAs as the $N$ highest peaks of the pseudo-spectrum function:
-    
     \[
     p(\theta) = \frac{1}{\underline{\mathrm{a}}^{H}(\theta) \left[\hat{\mathrm{V}}\right] \left[\hat{\mathrm{V}}\right]^{H} \underline{\mathrm{a}}(\theta)},
     \qquad \theta \in \left[ -\frac{\pi}{2}, \frac{\pi}{2} \right]
@@ -665,7 +638,6 @@ The MUSIC algorithm proceeds as follows:
 
 \subsubsection{Parametric methods: ESPRIT (Estimation of Signal Parameters via Rotational Invariance Techniques)}
 ESPRIT exploits the fact that:
-
 \[
 \left[\mathrm{U}\right] = \left[\mathrm{A}\right] \ \underbrace{\left[\mathrm{R}_{s}\right] \left[\mathrm{A}\right]^{H} \left[\mathrm{U}\right] \left[\mathrm{\overline{\Lambda}}\right]^{-1}}_{\left[\mathrm{C}\right] \ \text{non-singular matrix}}
 \]
@@ -679,13 +651,11 @@ Given $M$ microphones, we split the array into two identical sub-arrays, each co
 \end{figure}
 
 From the array data model:
-
 \[
 \underline{\mathrm{y}}(t) = \left[\mathrm{A}\right] \underline{\mathrm{s}}(t) + \underline{\mathrm{e}}(t)
 \]
 
 We derive the sub-array models:
-
 \[
 \left\{
 \begin{array}{cc}
@@ -698,7 +668,6 @@ We derive the sub-array models:
 \]
 
 We may prove that:
-
 \[
 \left[\mathrm{A}_{2}\right] = \left[\mathrm{A}_{1}\right] \left[\mathrm{D}\right],
 \qquad
@@ -714,7 +683,6 @@ From the matrix $\left[\mathrm{D}\right]$ we can compute the spatial frequencies
 
 Consider the covariance matrices $\left[\mathrm{R}_{1}\right]$ and $\left[\mathrm{R}_{2}\right]$ for the two sub-arrays.
 From their eigenvalue decompositions, we can compute the eigenvectors $\left[\mathrm{U}_{1}\right]$ and $\left[\mathrm{U}_{2}\right]$ associated with the sources, which can also be computed as:
-
 \[
 \left\{
 \begin{array}{c}
@@ -727,7 +695,6 @@ From their eigenvalue decompositions, we can compute the eigenvectors $\left[\ma
 Moreover, we know that $\left[ \mathrm{U} \right] = \left[ \mathrm{A} \right] \left[ \mathrm{C} \right]$, 
 where $\left[ \mathrm{C} \right]$ is an invertible matrix.  
 It follows that:
-
 \[
 \left\{
 \begin{array}{l}
@@ -751,7 +718,6 @@ It follows that:
 \]
 
 Replacing the expression for $\left[ \mathrm{A}_2 \right]$, we obtain:
-
 \[
 \left[ \mathrm{A}_2 \right] = \left[ \mathrm{A}_1 \right] \left[ \mathrm{D} \right]
 \quad \Rightarrow \quad
@@ -767,8 +733,7 @@ The ESPRIT algorithm proceeds as follows:
     
     \item From the eigenvalue decomposition, estimate $\hat{[ \mathrm{U}_1 ]}$ and $\hat{[ \mathrm{U}_2 ]}$
     
-    \item Compute the least-squares estimate of $[ \mathrm{\Phi} ]$:
-    
+    \item Compute the least-squares estimate of $[ \mathrm{\Phi} ]$:    
     \[
     \hat{[ \mathrm{\Phi} ]} = \left( \hat{[ \mathrm{U}_1 ]}^{H} \hat{[ \mathrm{U}_1 ]} \right)^{-1} \hat{[ \mathrm{U}_1 ]}^{H} \hat{[ \mathrm{U}_2 ]}
     \]
